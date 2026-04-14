@@ -1,0 +1,23 @@
+language: "zh-CN"
+reviews:
+  auto_review:
+    enabled: true
+    drafts: false
+  review_profile: "assertive"
+  path_instructions:
+    - path: "plugins/**/__init__.py"
+      instructions: |
+        这是一个 NebulaGraph 插件文件。请重点审查：
+        1. 是否使用了 from nebula_sdk import op, OperationContext 的标准写法
+        2. 是否有未声明的文件 IO 或网络请求
+        3. handler 函数是否有合理的错误处理
+        4. 参数处理是否安全（无 eval/exec）
+    - path: "plugins-index.json"
+      instructions: |
+        审查新增的插件条目：
+        1. id 是否符合规范（小写字母、数字、连字符）
+        2. download_url 是否指向可信托管地址
+        3. source 字段是否正确（official/community）
+        4. sha256 字段是否存在（community 插件必须有）
+chat:
+  auto_reply: true

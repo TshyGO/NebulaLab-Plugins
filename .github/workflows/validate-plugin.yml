@@ -1,0 +1,27 @@
+name: Validate Plugin PR
+
+on:
+  pull_request:
+    paths:
+      - 'plugins/**'
+      - 'plugins-index.json'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Validate plugins-index.json format
+        run: python .github/scripts/validate_index.py
+
+      - name: Validate plugin structure
+        run: python .github/scripts/validate_plugins.py
+
+      - name: Scan for dangerous code patterns
+        run: python .github/scripts/scan_dangerous.py
