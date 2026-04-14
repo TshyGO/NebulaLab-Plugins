@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Any, Callable, Dict
 
 # 用于收集注册在独立 SDK 环境的元数据（主要用于文档生成和独立测试）。
-# 当该插件在 NebulaGraph 主程序运行时，这里的 _registry 会被主程序的注册器所替代。
+# 当该插件在 Nebula Lab 主程序运行时，这里的 _registry 会被主程序的注册器所替代。
 _registry: Dict[str, Dict[str, Any]] = {}
 
 def register_operation(
@@ -16,7 +16,7 @@ def register_operation(
     SDK 版插件操作注册装饰器。
 
     在开发阶段：它会将配置注入模块的 _registry。
-    在生产运行阶段：当 NebulaGraph 加载插件时，主程序会接管这个装饰器，使操作能在平台内正常执行。
+    在生产运行阶段：当 Nebula Lab 加载插件时，主程序会接管这个装饰器，使操作能在平台内正常执行。
 
     函数签名必须为：
         def handler(sample: SampleProtocol, params: dict) -> Tuple[bool, dict]

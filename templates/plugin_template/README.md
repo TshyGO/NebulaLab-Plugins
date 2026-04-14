@@ -1,8 +1,8 @@
 # Plugin Template / 插件模板说明
 
-Use this folder as the starting point for a new NebulaGraph plugin.
+Use this folder as the starting point for a new NebulaLab plugin.
 
-把这个目录作为你开发 NebulaGraph 插件的起点模板。
+把这个目录作为你开发 NebulaLab 插件的起点模板。
 
 ## 3 Steps / 三步开始
 

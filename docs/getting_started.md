@@ -1,8 +1,8 @@
 # Getting Started / 快速开始
 
-This guide gets you from template to a running NebulaGraph plugin in about five minutes.
+This guide gets you from template to a running NebulaLab plugin in about five minutes.
 
-这份指南帮助你在大约 5 分钟内，从模板开始做出一个可运行的 NebulaGraph 插件。
+这份指南帮助你在大约 5 分钟内，从模板开始做出一个可运行的 NebulaLab 插件。
 
 ## 1. Copy the template / 复制模板
 
@@ -24,9 +24,9 @@ Copy your finished plugin folder into the application's `plugins/` directory.
 
 ## 4. Restart the app / 重启应用
 
-Restart the NebulaGraph application so it can scan the `plugins/` directory and load your plugin automatically.
+Restart the NebulaLab application so it can scan the `plugins/` directory and load your plugin automatically.
 
-重启 NebulaGraph 应用，程序会自动扫描 `plugins/` 目录并加载你的插件。
+重启 NebulaLab 应用，程序会自动扫描 `plugins/` 目录并加载你的插件。
 
 ## 5. Run it from the UI / 在界面中执行
 

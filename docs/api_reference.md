@@ -1,11 +1,11 @@
 # Nebula SDK API Reference
 
-Welcome to the Nebula SDK API Reference. This document details the types and decorators available for developing plugins for NebulaGraph Data Processor.
+Welcome to the Nebula SDK API Reference. This document details the types and decorators available for developing plugins for NebulaLab Data Processor.
 
 ## `nebula_sdk.decorators`
 
 ### `register_operation(name, display_name=None, category="custom", params_schema=None, description=None)`
-Decorator used to register a custom operation into the NebulaGraph platform.
+Decorator used to register a custom operation into the NebulaLab platform.
 
 - **name** (`str`): Unique identifier for the operation.
 - **display_name** (`str`, optional): Display name shown in the UI.
