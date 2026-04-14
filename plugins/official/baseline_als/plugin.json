@@ -1,0 +1,11 @@
+{
+  "id": "baseline-als",
+  "name": "ALS 基线校正",
+  "version": "1.0.0",
+  "author": "NebulaGraph Team",
+  "description": "使用非对称最小二乘法进行基线校正，适合光谱数据预处理",
+  "category": "preprocessing",
+  "min_app_version": "0.6.0",
+  "operations": ["baseline_als"],
+  "enabled": true
+}

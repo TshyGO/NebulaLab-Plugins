@@ -1,0 +1,13 @@
+{
+  "id": "my-plugin",
+  "name": "我的插件",
+  "version": "1.0.0",
+  "author": "Your Name",
+  "source": "community",
+  "description": "插件描述",
+  "category": "preprocessing",
+  "min_app_version": "0.6.0",
+  "operations": ["my_operation"],
+  "enabled": true,
+  "_panel_note": "可选：如果你的插件需要自定义 UI 面板，添加 panel.html 并在此处加 \"panel\": \"panel.html\""
+}
