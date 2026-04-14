@@ -11,9 +11,9 @@
       "description": "使用非对称最小二乘法进行基线校正，适合光谱数据预处理",
       "category": "preprocessing",
       "min_app_version": "0.6.0",
-      "download_url": "https://github.com/TshyGO/NebulaGraph-Plugins/releases/download/plugins/baseline-als-1.0.0.zip",
+      "download_url": "https://github.com/TshyGO/NebulaLab-Plugins/releases/download/plugins/baseline-als-1.0.0.zip",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "homepage": "https://github.com/TshyGO/NebulaGraph-Plugins/tree/main/plugins/official/baseline_als",
+      "homepage": "https://github.com/TshyGO/NebulaLab-Plugins/tree/main/plugins/official/baseline_als",
       "tags": ["baseline", "spectroscopy", "als"]
     },
     {
@@ -39,9 +39,9 @@
       "description": "演示 UI 插件面板功能，包含自定义可视化面板",
       "category": "visualization",
       "min_app_version": "0.7.0",
-      "download_url": "https://github.com/TshyGO/NebulaGraph-Plugins/releases/download/plugins/example-ui-panel-1.0.0.zip",
+      "download_url": "https://github.com/TshyGO/NebulaLab-Plugins/releases/download/plugins/example-ui-panel-1.0.0.zip",
       "sha256": "a1b2c3d4e5f67890abcdef1234567890abcdef1234567890abcdef1234567890",
-      "homepage": "https://github.com/TshyGO/NebulaGraph-Plugins/tree/main/plugins/official/example_ui_panel",
+      "homepage": "https://github.com/TshyGO/NebulaLab-Plugins/tree/main/plugins/official/example_ui_panel",
       "tags": ["ui", "panel", "visualization"]
     }
   ]
