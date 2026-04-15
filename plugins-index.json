@@ -14,33 +14,6 @@
       "download_url": "https://github.com/TshyGO/NebulaLab-Plugins/releases/download/plugins/baseline-als-1.0.0.zip",
       "homepage": "https://github.com/TshyGO/NebulaLab-Plugins/tree/main/plugins/official/baseline_als",
       "tags": ["baseline", "spectroscopy", "als"]
-    },
-    {
-      "id": "community-plugin-example",
-      "name": "社区插件示例（占位）",
-      "version": "0.1.0",
-      "author": "community-developer",
-      "source": "community",
-      "description": "这是一个社区插件条目示例，社区开发者提 PR 将自己的条目加到此处",
-      "category": "preprocessing",
-      "min_app_version": "0.6.0",
-      "download_url": "https://github.com/community-developer/their-repo/releases/download/v0.1.0/plugin.zip",
-      "homepage": "https://github.com/community-developer/their-repo",
-      "tags": ["example"]
-    },
-    {
-      "id": "example-ui-panel",
-      "name": "示例面板插件",
-      "version": "1.0.0",
-      "author": "Nebula Lab Team",
-      "source": "official",
-      "panel": true,
-      "description": "演示 UI 插件面板功能，包含自定义可视化面板",
-      "category": "visualization",
-      "min_app_version": "0.7.0",
-      "download_url": "https://github.com/TshyGO/NebulaLab-Plugins/releases/download/plugins/example-ui-panel-1.0.0.zip",
-      "homepage": "https://github.com/TshyGO/NebulaLab-Plugins/tree/main/plugins/official/example_ui_panel",
-      "tags": ["ui", "panel", "visualization"]
     }
   ]
 }
