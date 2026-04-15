@@ -7,7 +7,7 @@ reviews:
   path_instructions:
     - path: "plugins/**/__init__.py"
       instructions: |
-        这是一个 NebulaGraph 插件文件。请重点审查：
+        这是一个 NebulaLab 插件文件。请重点审查：
         1. 是否使用了 from nebula_sdk import op, OperationContext 的标准写法
         2. 是否有未声明的文件 IO 或网络请求
         3. handler 函数是否有合理的错误处理

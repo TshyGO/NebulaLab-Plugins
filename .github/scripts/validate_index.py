@@ -63,6 +63,11 @@ def main() -> None:
         if not isinstance(source, str) or source not in ALLOWED_SOURCES:
             errors.append(f"ERROR: {label}.source must be one of: official, community")
 
+        if source == "community":
+            sha256 = item.get("sha256")
+            if not isinstance(sha256, str) or not sha256.strip():
+                errors.append(f"ERROR: {label}.sha256 is required for community plugins")
+
     if errors:
         for error in errors:
             print(error)
