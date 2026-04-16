@@ -41,7 +41,6 @@ my_awesome_plugin/
   "name": "我的数据处理插件",
   "version": "1.0.0",
   "author": "您的名字",
-  "source": "community",
   "description": "这是我的第一个 NebulaLab 插件",
   "category": "preprocessing",
   "min_app_version": "0.6.0",
@@ -65,30 +64,18 @@ Nebula SDK 提供了两个非常重要的对象来编写插件：
 
 现在，让我们编写一个简单的插件。它的功能是将用户指定的一列数据乘以一个固定的倍数，并将结果写入一个新列。
 
-### 1. 引入必要的包并设置 SDK
+### 1. 引入必要的包
 
 ```python
 from __future__ import annotations
 
-import sys
-from pathlib import Path
 from typing import Any, Dict
 import pandas as pd
 
-# 确保 SDK 能够被正确导入（适用于本地开发和发布到应用内的情况）
-def _ensure_nebula_sdk_importable() -> None:
-    current = Path(__file__).resolve()
-    for parent in current.parents:
-        if (parent / "nebula_sdk").is_dir() or (parent / "nebula_sdk.py").is_file():
-            parent_str = str(parent)
-            if parent_str not in sys.path:
-                sys.path.insert(0, parent_str)
-            return
-
-_ensure_nebula_sdk_importable()
-
 from nebula_sdk import OperationContext, op
 ```
+
+> **说明：** `nebula_sdk` 由应用在加载插件时自动注入运行环境，直接 `import` 即可，无需手动设置路径。
 
 ### 2. 定义操作逻辑
 

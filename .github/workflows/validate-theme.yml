@@ -1,10 +1,9 @@
-name: Validate Plugin PR
+name: Validate Theme PR
 
 on:
   pull_request:
     paths:
-      - 'plugins/**'
-      - 'plugins-index.json'
+      - 'themes-index.json'
 
 jobs:
   validate:
@@ -12,24 +11,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check PR modifies only plugins-index.json
+      - name: Check PR modifies only themes-index.json
         run: |
           # Get list of changed files in this PR
           FILES=$(gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files --jq '.[].filename')
           
-          # Check if any file other than plugins-index.json is modified
-          NON_INDEX_FILES=$(echo "$FILES" | grep -v '^plugins-index.json$' || true)
+          # Check if any file other than themes-index.json is modified
+          NON_INDEX_FILES=$(echo "$FILES" | grep -v '^themes-index.json$' || true)
           
           if [ -n "$NON_INDEX_FILES" ]; then
-            echo "❌ This PR contains changes to files other than plugins-index.json:"
+            echo "❌ This PR contains changes to files other than themes-index.json:"
             echo "$NON_INDEX_FILES"
             echo ""
             echo "⚠️  Only pure index updates are eligible for auto-merge."
-            echo "   Code changes in plugins/ require manual review."
+            echo "   Code changes require manual review."
             exit 1
           fi
           
-          echo "✅ PR only modifies plugins-index.json, proceeding with validation."
+          echo "✅ PR only modifies themes-index.json, proceeding with validation."
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -38,14 +37,8 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Validate plugins-index.json format
-        run: python .github/scripts/validate_index.py
-
-      - name: Validate plugin structure
-        run: python .github/scripts/validate_plugins.py
-
-      - name: Scan for dangerous code patterns
-        run: python .github/scripts/scan_dangerous.py
+      - name: Validate themes-index.json format
+        run: python .github/scripts/validate_themes_index.py
 
   auto-merge:
     needs: validate

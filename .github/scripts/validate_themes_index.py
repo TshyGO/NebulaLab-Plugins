@@ -1,0 +1,82 @@
+from __future__ import annotations
+
+import json
+import re
+import sys
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[2]
+INDEX_PATH = ROOT / "themes-index.json"
+ID_PATTERN = re.compile(r"^[a-z0-9_-]+$")
+SEMVER_PATTERN = re.compile(r"^\d+\.\d+\.\d+$")
+ALLOWED_COLOR_SCHEMES = {"light", "dark"}
+
+
+def fail(message: str) -> None:
+    print(message)
+    raise SystemExit(1)
+
+
+def main() -> None:
+    try:
+        payload = json.loads(INDEX_PATH.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        fail(f"ERROR: Missing file: {INDEX_PATH}")
+    except json.JSONDecodeError as exc:
+        fail(f"ERROR: themes-index.json is not valid JSON: {exc}")
+
+    if not isinstance(payload, dict):
+        fail("ERROR: themes-index.json top-level value must be an object")
+
+    themes = payload.get("themes")
+    if not isinstance(themes, list):
+        fail("ERROR: themes-index.json must contain a top-level 'themes' array")
+
+    errors: list[str] = []
+    for index, item in enumerate(themes):
+        label = f"themes[{index}]"
+        if not isinstance(item, dict):
+            errors.append(f"ERROR: {label} must be an object")
+            continue
+
+        theme_id = item.get("id")
+        if not isinstance(theme_id, str) or not theme_id:
+            errors.append(f"ERROR: {label}.id must be a non-empty string")
+        elif not ID_PATTERN.fullmatch(theme_id):
+            errors.append(f"ERROR: {label}.id '{theme_id}' must match ^[a-z0-9_-]+$")
+
+        name = item.get("name")
+        if not isinstance(name, str) or not name.strip():
+            errors.append(f"ERROR: {label}.name must be a non-empty string")
+
+        version = item.get("version")
+        if not isinstance(version, str) or not SEMVER_PATTERN.fullmatch(version):
+            errors.append(f"ERROR: {label}.version must match semver x.y.z")
+
+        author = item.get("author")
+        if not isinstance(author, str) or not author.strip():
+            errors.append(f"ERROR: {label}.author must be a non-empty string")
+
+        color_scheme = item.get("color_scheme")
+        if not isinstance(color_scheme, str) or color_scheme not in ALLOWED_COLOR_SCHEMES:
+            errors.append(f"ERROR: {label}.color_scheme must be 'light' or 'dark'")
+
+        download_url = item.get("download_url")
+        if not isinstance(download_url, str) or not download_url.strip():
+            errors.append(f"ERROR: {label}.download_url must be a non-empty string")
+
+        sha256 = item.get("sha256")
+        if not isinstance(sha256, str) or not sha256.strip():
+            errors.append(f"ERROR: {label}.sha256 must be a non-empty string")
+
+    if errors:
+        for error in errors:
+            print(error)
+        raise SystemExit(1)
+
+    print("themes-index.json validation passed")
+
+
+if __name__ == "__main__":
+    main()

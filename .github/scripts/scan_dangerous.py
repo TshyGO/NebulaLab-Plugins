@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import sys
 from pathlib import Path
 
 
@@ -25,7 +26,8 @@ def iter_python_files(root: Path) -> list[Path]:
     )
 
 
-def main() -> None:
+def main() -> int:
+    found_dangerous = False
     for path in iter_python_files(PLUGINS_DIR):
         try:
             lines = path.read_text(encoding="utf-8").splitlines()
@@ -36,10 +38,22 @@ def main() -> None:
             for pattern in PATTERNS:
                 if pattern.search(line):
                     print(
-                        f"⚠️  WARNING: Potentially dangerous call found in {path.as_posix()}:{line_no}: {line.strip()}"
+                        f"❌ ERROR: Potentially dangerous call found in {path.as_posix()}:{line_no}: {line.strip()}",
+                        file=sys.stderr,
                     )
+                    found_dangerous = True
                     break
+
+    if found_dangerous:
+        print(
+            "❌ Dangerous code patterns detected. CI validation failed.",
+            file=sys.stderr,
+        )
+        return 1
+
+    print("✅ No dangerous code patterns found.")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

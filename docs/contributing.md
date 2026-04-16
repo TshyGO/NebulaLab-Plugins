@@ -99,16 +99,86 @@ git push origin add-my-awesome-plugin
 
 当您的插件发布新版本时，在自己的仓库发布新 Release 后，向本仓库提交 PR 更新 `plugins-index.json` 中对应条目的 `version`、`download_url` 和 `sha256` 字段即可。
 
-## 审核标准
+## 审核流程
 
-PR 提交后 CI 会自动校验索引格式，CodeRabbit 会进行 AI 代码审查。维护者将基于以下标准进行最终审核：
+PR 提交后 CI 会自动进行验证：
 
-- **安全性**: 不应包含恶意代码，不能在未声明的情况下访问文件系统或发起网络请求。
-- **稳定性**: 对异常数据和错误参数有适当的容错和错误提示。
-- **性能**: 不会在处理常见规模数据时导致应用无响应。
-- **UI/UX**: `params_schema` 中定义了对用户友好的参数描述。
+1. **文件检查**: 确认 PR 只修改了 `plugins-index.json`（代码变更需要人工审核）
+2. **格式验证**: 校验索引文件的 JSON 格式和字段完整性
+3. **安全扫描**: 检测潜在的危险代码模式
+
+全部验证通过后，PR 将自动 squash merge，通常在几分钟内完成。
+
+**验证失败处理**: 失败原因会在 PR 页面显示具体错误信息。按提示修改后重新 push，CI 会重新运行验证。
 
 通过审核后，您的插件将出现在所有 NebulaLab 用户的插件市场中。
+
+## 提交主题到主题市场
+
+NebulaLab 支持用户自定义主题，您可以将自己设计的主题分享给所有用户。
+
+### 主题 zip 格式
+
+主题需要打包为以下结构：
+
+```
+my-theme-1.0.0.zip
+└── my-theme/
+    └── theme.json
+```
+
+### theme.json 必填字段
+
+```json
+{
+  "id": "my-theme",
+  "name": "My Theme",
+  "author": "your-name",
+  "version": "1.0.0",
+  "color_scheme": "light",
+  "description": "...",
+  "variables": {
+    "--bg-app": "#ffffff",
+    "--accent": "#e07840"
+  }
+}
+```
+
+字段说明：
+- `id`: 主题唯一标识符，只允许小写字母、数字、连字符和下划线
+- `color_scheme`: `"light"` 或 `"dark"`
+- `variables`: CSS 变量覆盖，只需要提供想覆盖的变量，未覆盖的变量继承内置默认值
+
+完整 CSS 变量列表参考内置主题的两个区块（`:root` 和 `:root[data-theme='graphite-dark']`）。
+
+### 提交流程
+
+流程与插件提交完全一致：
+
+1. **在自己的仓库发布 Release**: 将主题打包为 zip 文件，发布 Release
+2. **计算 sha256**:
+   ```bash
+   # macOS / Linux
+   shasum -a 256 my-theme-1.0.0.zip
+   
+   # Windows PowerShell
+   Get-FileHash my-theme-1.0.0.zip -Algorithm SHA256
+   ```
+3. **Fork 仓库并修改 themes-index.json**: 在 `themes` 数组末尾加入条目
+   ```json
+   {
+     "id": "my-theme",
+     "name": "My Theme",
+     "version": "1.0.0",
+     "author": "your-name",
+     "color_scheme": "light",
+     "download_url": "https://github.com/you/my-theme/releases/download/v1.0.0/my-theme-1.0.0.zip",
+     "sha256": "abc123..."
+   }
+   ```
+4. **提交 PR**: CI 自动验证格式，通过后自动 squash merge，几分钟内上架
+
+注意：PR 只能修改 `themes-index.json`，不能包含其他文件，否则 CI 拒绝。
 
 ## 疑问与支持
 

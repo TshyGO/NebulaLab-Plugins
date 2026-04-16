@@ -147,3 +147,30 @@ zip -r my-plugin-1.0.0.zip .
 ```
 
 zip 根目录直接包含插件文件（解压后得到 `plugin.json`、`__init__.py` 等），或 zip 里包一层同名目录也可以。用户在插件管理界面点"从本地安装"选择 zip 文件。
+
+## 发布到插件市场
+
+开发者把插件发布到 NebulaLab 插件广场的步骤：
+
+1. **在自己的 GitHub 仓库发布 Release**: zip 内包含插件目录（plugin.json + __init__.py 等）
+2. **计算 zip 的 sha256**:
+   - macOS/Linux：`shasum -a 256 plugin.zip`
+   - Windows：`Get-FileHash plugin.zip -Algorithm SHA256`
+3. **Fork TshyGO/NebulaLab-Plugins**，在 `plugins-index.json` 的 `plugins` 数组末尾加入：
+   ```json
+   {
+     "id": "your-plugin-id",
+     "name": "插件显示名",
+     "version": "1.0.0",
+     "author": "your-name",
+     "source": "community",
+     "description": "...",
+     "category": "preprocessing",
+     "min_app_version": "0.7.0",
+     "download_url": "https://github.com/you/repo/releases/download/v1.0.0/plugin.zip",
+     "sha256": "abc123..."
+   }
+   ```
+4. **提交 PR**: CI 自动验证格式，通过后自动 squash merge，几分钟内上架
+
+注意：PR 只能修改 `plugins-index.json`，不能包含其他文件，否则 CI 拒绝。
