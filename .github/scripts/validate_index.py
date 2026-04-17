@@ -72,6 +72,13 @@ def main() -> None:
         elif not homepage.startswith("https://"):
             errors.append(f"ERROR: {label}.homepage must start with https://")
 
+        logo_url = item.get("logo_url")
+        if logo_url is not None:
+            if not isinstance(logo_url, str) or not logo_url.strip():
+                errors.append(f"ERROR: {label}.logo_url must be a non-empty string when provided")
+            elif not logo_url.startswith("https://"):
+                errors.append(f"ERROR: {label}.logo_url must start with https://")
+
         sha256 = item.get("sha256")
         if not isinstance(sha256, str) or not SHA256_PATTERN.fullmatch(sha256.lower()):
             errors.append(f"ERROR: {label}.sha256 must be a 64-character lowercase hex string")

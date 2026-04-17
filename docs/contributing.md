@@ -77,6 +77,7 @@ git checkout -b add-my-awesome-plugin
   "min_app_version": "0.6.0",
   "download_url": "https://github.com/您的用户名/my-awesome-plugin/releases/download/v1.0.0/my-awesome-plugin-1.0.0.zip",
   "homepage": "https://github.com/您的用户名/my-awesome-plugin",
+  "logo_url": "https://raw.githubusercontent.com/您的用户名/my-awesome-plugin/main/assets/logo.png",
   "source_url": "https://github.com/您的用户名/my-awesome-plugin",
   "sha256": "ab12cd34ef56..."
 }
@@ -85,6 +86,7 @@ git checkout -b add-my-awesome-plugin
 字段说明：
 - `download_url`: 指向您自己仓库 Release 中 zip 文件的直链
 - `homepage`: 插件主页或项目介绍页（**所有插件必填**）
+- `logo_url`: 插件卡片徽标（**可选**，建议使用透明底方形图片）
 - `source_url`: 插件源码仓库地址（**community 插件必填**）
 - `sha256`: 上一步计算出的哈希值（**所有远端市场插件必填**）
 - `min_app_version`: 插件所需的最低 NebulaLab 版本

@@ -186,10 +186,13 @@ zip 根目录直接包含插件文件（解压后得到 `plugin.json`、`__init_
      "min_app_version": "0.7.0",
      "download_url": "https://github.com/you/repo/releases/download/v1.0.0/plugin.zip",
      "homepage": "https://github.com/you/repo",
+     "logo_url": "https://raw.githubusercontent.com/you/repo/main/assets/logo.png",
      "source_url": "https://github.com/you/repo",
      "sha256": "abc123..."
    }
    ```
 4. **提交 PR**: CI 会下载 release zip，校验哈希、包结构与基础风险模式，通过后自动 squash merge
+
+`logo_url` 是可选字段。建议使用透明底、1:1 比例的 PNG / SVG，并提供稳定的 `https` 地址。
 
 注意：PR 只能修改 `plugins-index.json`，不能包含其他文件，否则 CI 拒绝。
