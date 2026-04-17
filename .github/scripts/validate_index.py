@@ -12,6 +12,7 @@ INDEX_PATH = ROOT / "plugins-index.json"
 ID_PATTERN = re.compile(r"^[a-z0-9_-]+$")
 SEMVER_PATTERN = re.compile(r"^\d+\.\d+\.\d+$")
 ALLOWED_SOURCES = {"official", "community"}
+SHA256_PATTERN = re.compile(r"^[a-f0-9]{64}$")
 
 
 def fail(message: str) -> None:
@@ -58,15 +59,29 @@ def main() -> None:
         download_url = item.get("download_url")
         if not isinstance(download_url, str) or not download_url.strip():
             errors.append(f"ERROR: {label}.download_url must be a non-empty string")
+        elif not download_url.startswith("https://"):
+            errors.append(f"ERROR: {label}.download_url must start with https://")
 
         source = item.get("source")
         if not isinstance(source, str) or source not in ALLOWED_SOURCES:
             errors.append(f"ERROR: {label}.source must be one of: official, community")
 
+        homepage = item.get("homepage")
+        if not isinstance(homepage, str) or not homepage.strip():
+            errors.append(f"ERROR: {label}.homepage must be a non-empty string")
+        elif not homepage.startswith("https://"):
+            errors.append(f"ERROR: {label}.homepage must start with https://")
+
+        sha256 = item.get("sha256")
+        if not isinstance(sha256, str) or not SHA256_PATTERN.fullmatch(sha256.lower()):
+            errors.append(f"ERROR: {label}.sha256 must be a 64-character lowercase hex string")
+
         if source == "community":
-            sha256 = item.get("sha256")
-            if not isinstance(sha256, str) or not sha256.strip():
-                errors.append(f"ERROR: {label}.sha256 is required for community plugins")
+            source_url = item.get("source_url")
+            if not isinstance(source_url, str) or not source_url.strip():
+                errors.append(f"ERROR: {label}.source_url is required for community plugins")
+            elif not source_url.startswith("https://"):
+                errors.append(f"ERROR: {label}.source_url must start with https://")
 
     if errors:
         for error in errors:

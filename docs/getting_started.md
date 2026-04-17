@@ -50,8 +50,21 @@ my_awesome_plugin/
 ```
 
 *说明：*
+- **`id`**: 只允许小写字母、数字、连字符和下划线。
 - **`operations`**: 这是你在 `__init__.py` 中通过 `@op` 装饰器注册的函数名（操作名）。
 - **`category`**: 插件的分类，常见的有 `preprocessing`（预处理）, `analysis`（分析）, `export`（导出）等。
+
+如果你要做面板型插件，还可以继续补充：
+
+```json
+{
+  "panel": "panel.html",
+  "panel_title": "My Panel",
+  "panel_icon": "chart",
+  "panel_views": ["prep", "plots"],
+  "panel_position": "right"
+}
+```
 
 ## 核心 SDK 概念
 

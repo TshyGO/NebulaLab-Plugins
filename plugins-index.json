@@ -13,6 +13,7 @@
       "min_app_version": "0.6.0",
       "download_url": "https://github.com/TshyGO/NebulaLab-Plugins/releases/download/plugins/baseline-als-1.0.0.zip",
       "homepage": "https://github.com/TshyGO/NebulaLab-Plugins/tree/main/plugins/official/baseline_als",
+      "sha256": "ab54fcfe9e07d499b424e762c1ad63af8956e9048402d2c15750c14f7d46972e",
       "tags": ["baseline", "spectroscopy", "als"]
     }
   ]

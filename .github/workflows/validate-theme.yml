@@ -40,6 +40,9 @@ jobs:
       - name: Validate themes-index.json format
         run: python .github/scripts/validate_themes_index.py
 
+      - name: Validate referenced release zip assets
+        run: python .github/scripts/validate_theme_release_assets.py
+
   auto-merge:
     needs: validate
     runs-on: ubuntu-latest

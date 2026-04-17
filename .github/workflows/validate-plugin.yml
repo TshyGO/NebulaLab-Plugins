@@ -41,11 +41,8 @@ jobs:
       - name: Validate plugins-index.json format
         run: python .github/scripts/validate_index.py
 
-      - name: Validate plugin structure
-        run: python .github/scripts/validate_plugins.py
-
-      - name: Scan for dangerous code patterns
-        run: python .github/scripts/scan_dangerous.py
+      - name: Validate referenced release zip assets
+        run: python .github/scripts/validate_plugin_release_assets.py
 
   auto-merge:
     needs: validate

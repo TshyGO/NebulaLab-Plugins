@@ -9,5 +9,6 @@
   "min_app_version": "0.6.0",
   "operations": ["my_operation"],
   "enabled": true,
-  "_panel_note": "可选：如果你的插件需要自定义 UI 面板，添加 panel.html 并在此处加 \"panel\": \"panel.html\""
+  "_panel_note": "可选：如果你的插件需要自定义 UI 面板，添加 panel.html，并可额外声明 panel_title / panel_icon / panel_views / panel_position",
+  "_panel_icon_note": "panel_icon 可选值示例：chart、sliders、download、palette、sparkles"
 }

@@ -27,7 +27,7 @@ my-plugin/
 
 ```json
 {
-  "id": "my-plugin",           // 必须，唯一 ID，只允许字母/数字/连字符/下划线
+  "id": "my-plugin",           // 必须，唯一 ID，只允许小写字母/数字/连字符/下划线
   "name": "My Plugin",         // 显示名称
   "version": "1.0.0",
   "description": "插件描述",
@@ -44,6 +44,7 @@ my-plugin/
   // 面板型插件字段
   "panel": "panel.html",           // 面板 HTML 文件名
   "panel_title": "My Panel",       // 面板标题栏显示的名字
+  "panel_icon": "chart",           // 顶栏图标（如 chart / sliders / download / palette / sparkles）
   "panel_position": "right",       // 面板位置：left / right / bottom / center / floating
   "panel_views": ["prep", "plots", "export"],  // 在哪些 tab 里显示图标
   "allow_ai": false                // 是否允许面板调用外部 AI API（默认 false）
@@ -135,6 +136,22 @@ def my_operation(sample, params: Dict[str, Any]):
 - `nebula:refresh-data`：刷新当前 session 的数据查询缓存
 - `nebula:close-panel`：关闭面板
 
+**高级面板桥接（`PLUGIN_REQUEST`）**：
+- `GET_SAMPLE_INFO`：读取当前样品、列和会话信息
+- `GET_DATA`：读取当前数据表
+- `APPLY_OPERATION`：从面板内直接触发插件操作
+- `CALL_AI`：在 `allow_ai: true` 且通过用户确认时访问受限 AI 域名
+
+推荐格式：
+
+```js
+window.parent.postMessage({
+  type: 'PLUGIN_REQUEST',
+  requestId: crypto.randomUUID(),
+  action: 'GET_SAMPLE_INFO'
+}, '*')
+```
+
 **allow_ai 说明**：
 - `allow_ai: false`（默认）：面板完全无法发出外部网络请求
 - `allow_ai: true`：面板可以 fetch 调用 OpenAI / Anthropic / DeepSeek 等 AI API（域名白名单由应用维护）
@@ -168,9 +185,11 @@ zip 根目录直接包含插件文件（解压后得到 `plugin.json`、`__init_
      "category": "preprocessing",
      "min_app_version": "0.7.0",
      "download_url": "https://github.com/you/repo/releases/download/v1.0.0/plugin.zip",
+     "homepage": "https://github.com/you/repo",
+     "source_url": "https://github.com/you/repo",
      "sha256": "abc123..."
    }
    ```
-4. **提交 PR**: CI 自动验证格式，通过后自动 squash merge，几分钟内上架
+4. **提交 PR**: CI 会下载 release zip，校验哈希、包结构与基础风险模式，通过后自动 squash merge
 
 注意：PR 只能修改 `plugins-index.json`，不能包含其他文件，否则 CI 拒绝。

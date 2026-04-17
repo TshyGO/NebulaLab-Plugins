@@ -166,12 +166,18 @@ my-theme-1.0.0.zip
      "name": "My Theme",
      "author": "your-name",
      "version": "1.0.0",
+     "source": "community",
      "color_scheme": "dark",
      "description": "...",
      "download_url": "https://github.com/you/repo/releases/download/v1.0.0/my-theme.zip",
-     "sha256": "abc123..."
+     "sha256": "abc123...",
+     "homepage": "https://github.com/you/repo",
+     "preview_image_url": "https://raw.githubusercontent.com/you/repo/main/preview.png",
+     "min_app_version": "0.7.0",
+     "tags": ["dark", "nebula", "high-contrast"],
+     "accessibility_notes": "Primary text keeps AA contrast on panels."
    }
    ```
-4. 提交 PR（只修改 `themes-index.json`，不能包含其他文件），CI 自动验证，通过后自动合并
+4. 提交 PR（只修改 `themes-index.json`，不能包含其他文件），CI 会下载 release zip 校验哈希和 `theme.json`，通过后自动合并
 
-**重要提示**：发布到市场时，所有字段都是必填项，包括 `author`、`sha256` 等。CI 验证会拒绝缺少任何必填字段的条目。
+**重要提示**：发布到市场时，所有字段都是必填项，包括 `sha256`、主页、预览图、标签、最低版本和可访问性说明。CI 验证会拒绝缺少任何必填字段的条目。

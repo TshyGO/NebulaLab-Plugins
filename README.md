@@ -27,13 +27,13 @@
 |------|------|
 | [快速开始](./docs/getting_started.md) | 从环境搭建到第一个插件 |
 | [SDK API 参考](./docs/api_reference.md) | `@op` 装饰器、`OperationContext` 详解 |
-| [Claude Code Skill](./skills/nebula-plugin-dev.md) | AI 辅助开发插件 |
+| [Claude Code Skill](./skills/nebula-plugin-dev.md) | AI 辅助开发插件，含面板消息桥与市场发布字段 |
 
 ## 开发主题
 
 | 文档 | 说明 |
 |------|------|
-| [Claude Code Skill](./skills/nebula-theme-dev.md) | AI 辅助设计主题，含完整 CSS 变量参考表 |
+| [Claude Code Skill](./skills/nebula-theme-dev.md) | AI 辅助设计主题，含市场元数据与完整 CSS 变量参考表 |
 | [贡献指南 · 主题部分](./docs/contributing.md#提交主题到主题市场) | 主题打包与发布流程 |
 
 ## 提交到插件市场
@@ -42,15 +42,23 @@
 
 1. 在自己的仓库发布插件 Release（zip 包）
 2. 计算 sha256 校验值
-3. Fork 本仓库，在 `plugins-index.json` 添加条目
-4. 提交 PR — CI 自动验证，通过后自动合并
+3. 提供项目主页；社区插件还必须提供源码仓库地址
+4. Fork 本仓库，在 `plugins-index.json` 添加条目
+5. 提交 PR — CI 会下载你声明的 release zip，校验哈希、包结构和基础风险模式，通过后才会自动合并
 
 ## 提交到主题市场
 
 1. 在自己的仓库发布主题 Release（zip 包，内含 `theme.json`）
 2. 计算 sha256 校验值
-3. Fork 本仓库，在 `themes-index.json` 添加条目
-4. 提交 PR — CI 自动验证，通过后自动合并
+3. 准备主页、预览图、标签、最低支持版本和可访问性说明
+4. Fork 本仓库，在 `themes-index.json` 添加条目
+5. 提交 PR — CI 会下载你声明的 release zip，校验哈希和主题清单后自动合并
+
+## 安全说明
+
+- 市场 CI 现在会验证“索引声明”和“远端实际上传的 zip 包”是否一致。
+- 这仍然只是自动化完整性校验与基础启发式扫描，不等于人工安全审计。
+- 安装社区插件前，仍建议先查看主页、源码仓库和 release 内容。
 
 ## 仓库结构
 
@@ -68,7 +76,7 @@ NebulaLab-Plugins/
 ├── skills/                     # AI 辅助开发 skill
 │   ├── nebula-plugin-dev.md    # 插件开发 skill
 │   └── nebula-theme-dev.md     # 主题开发 skill
-└── .github/workflows/          # CI：PR 时自动验证格式并合并
+└── .github/workflows/          # CI：PR 时自动验证索引与 release 资产
 ```
 
 ---
@@ -107,9 +115,9 @@ Install directly in the NebulaLab app — no need to visit this repository:
 
 See [Contributing Guide](./docs/contributing.md) for full details. Key steps:
 
-**Plugins:** Fork → add entry to `plugins-index.json` → submit PR — CI auto-validates and merges.
+**Plugins:** publish a release zip + checksum + homepage (+ source URL for community plugins) → add entry to `plugins-index.json` → submit PR — CI downloads the referenced asset, verifies checksum/package structure, then auto-merges.
 
-**Themes:** Fork → add entry to `themes-index.json` → submit PR — CI auto-validates and merges.
+**Themes:** publish a release zip + checksum + homepage + preview metadata → add entry to `themes-index.json` → submit PR — CI downloads the referenced asset and validates the manifest before auto-merge.
 
 ## Repository Structure
 
@@ -127,4 +135,4 @@ NebulaLab-Plugins/
 ├── skills/                     # AI-assisted development skills
 │   ├── nebula-plugin-dev.md    # Plugin development skill
 │   └── nebula-theme-dev.md     # Theme development skill
-└── .github/workflows/          # CI: Auto-validate and merge on PR
+└── .github/workflows/          # CI: Validate indexes and referenced release assets
