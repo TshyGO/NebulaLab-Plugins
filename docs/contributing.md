@@ -146,6 +146,7 @@ my-theme-1.0.0.zip
   "version": "1.0.0",
   "color_scheme": "light",
   "description": "...",
+  "background_image_url": "https://...",
   "variables": {
     "--bg-app": "#ffffff",
     "--accent": "#e07840"
@@ -156,6 +157,7 @@ my-theme-1.0.0.zip
 字段说明：
 - `id`: 主题唯一标识符，只允许小写字母、数字、连字符和下划线
 - `color_scheme`: `"light"` 或 `"dark"`
+- `background_image_url`: **可选**，主题激活时铺在 app 底层的背景图，必须是 `https://` URL；使用外链图片时，图片服务器可获取用户 IP，请在主题说明中告知用户
 - `variables`: CSS 变量覆盖，只需要提供想覆盖的变量，未覆盖的变量继承内置默认值
 
 完整 CSS 变量列表参考内置主题的两个区块（`:root` 和 `:root[data-theme='graphite-dark']`）。
@@ -187,11 +189,13 @@ my-theme-1.0.0.zip
      "sha256": "abc123...",
      "homepage": "https://github.com/you/my-theme",
      "preview_image_url": "https://raw.githubusercontent.com/you/my-theme/main/preview.png",
-     "min_app_version": "0.7.0",
+     "background_image_url": "https://...",
+     "min_app_version": "0.7.1",
      "tags": ["light", "warm", "lab"],
      "accessibility_notes": "Body text contrast >= WCAG AA on panels."
    }
    ```
+   `background_image_url` 为可选字段，有背景图的主题在市场卡片上会显示"含背景图"标识。
 4. **提交 PR**: CI 自动下载 release zip，校验 sha256 和 `theme.json`，通过后自动 squash merge，几分钟内上架
 
 注意：PR 只能修改 `themes-index.json`，不能包含其他文件，否则 CI 拒绝。

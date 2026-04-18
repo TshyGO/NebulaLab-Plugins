@@ -102,6 +102,13 @@ def main() -> None:
         if not isinstance(tags, list) or not tags or not all(isinstance(tag, str) and tag.strip() for tag in tags):
             errors.append(f"ERROR: {label}.tags must be a non-empty string array")
 
+        background_image_url = item.get("background_image_url")
+        if background_image_url is not None:
+            if not isinstance(background_image_url, str) or not background_image_url.strip():
+                errors.append(f"ERROR: {label}.background_image_url must be a non-empty string when provided")
+            elif not background_image_url.startswith("https://"):
+                errors.append(f"ERROR: {label}.background_image_url must start with https://")
+
         accessibility_notes = item.get("accessibility_notes")
         if not isinstance(accessibility_notes, str) or not accessibility_notes.strip():
             errors.append(f"ERROR: {label}.accessibility_notes must be a non-empty string")
