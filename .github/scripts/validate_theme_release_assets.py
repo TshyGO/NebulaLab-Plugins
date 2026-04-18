@@ -83,6 +83,8 @@ def validate_theme_asset(entry: dict) -> None:
             fail(f"{theme_id}: theme.json version does not match index entry")
         if theme_meta.get("color_scheme") != entry["color_scheme"]:
             fail(f"{theme_id}: theme.json color_scheme does not match index entry")
+        if theme_meta.get("background_image_url") != entry.get("background_image_url"):
+            fail(f"{theme_id}: theme.json background_image_url does not match index entry")
 
 
 def main() -> None:
