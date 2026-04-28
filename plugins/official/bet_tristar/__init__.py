@@ -13,10 +13,11 @@ def _ensure_nebula_sdk_importable() -> None:
                 sys.path.insert(0, parent_str)
             return
 
-
-_ensure_nebula_sdk_importable()
-
-from nebula_sdk import ImportResult, register_importer
+try:
+    from nebula_sdk import ImportResult, register_importer
+except ImportError:
+    _ensure_nebula_sdk_importable()
+    from nebula_sdk import ImportResult, register_importer
 
 from .parser import detect_tristar_file, parse_tristar_file
 

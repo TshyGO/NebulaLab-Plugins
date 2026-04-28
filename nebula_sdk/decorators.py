@@ -60,12 +60,12 @@ def _normalize_extensions(extensions):
 def register_importer(
     id: str,
     name: str,
-    extensions,
+    extensions: list[str] | tuple[str, ...],
     description: str = None,
     category: str = "custom",
     min_app_version: str = None,
     detect_fn: Callable | None = None,
-):
+) -> Callable[[Callable], Callable]:
     def decorator(func: Callable) -> Callable:
         metadata = {
             "id": id,

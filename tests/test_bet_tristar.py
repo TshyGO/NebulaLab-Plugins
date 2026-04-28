@@ -51,10 +51,10 @@ def _write_tristar_fixture(path: Path) -> None:
     df.iat[30, 12] = 71.45389756
     df.iat[30, 13] = 0.9889
     df.iat[30, 14] = 922.99
-    df.iat[31, 11] = 0.0883
-    df.iat[31, 12] = 86.33
-    df.iat[31, 13] = 0.9794
-    df.iat[31, 14] = 890.14
+    df.iat[32, 11] = 0.0883
+    df.iat[32, 12] = 86.33
+    df.iat[32, 13] = 0.9794
+    df.iat[32, 14] = 890.14
 
     with pd.ExcelWriter(path) as writer:
         df.to_excel(writer, index=False, header=False)
@@ -89,6 +89,16 @@ def test_parse_tristar_file_extracts_isotherm_and_metadata(tmp_path: Path) -> No
     assert result.meta["bath_temp_K"] == 77.3
     assert result.meta["bet_surface_area_m2g"] == 530.9603
     assert result.meta["total_pore_volume_cm3g"] == 1.427695
+
+
+def test_parse_tristar_file_tolerates_single_blank_rows_inside_isotherm(tmp_path: Path) -> None:
+    path = tmp_path / "tristar.xlsx"
+    _write_tristar_fixture(path)
+
+    result = parse_tristar_file(path)
+
+    assert len(result.df) == 4
+    assert result.df["p_over_p0"].tolist() == [0.0530187657, 0.0883, 0.9889, 0.9794]
 
 
 def test_parse_tristar_file_raises_controlled_error_for_missing_isotherm(tmp_path: Path) -> None:

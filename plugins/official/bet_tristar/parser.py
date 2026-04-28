@@ -7,6 +7,23 @@ from typing import Any
 
 import pandas as pd
 
+TRISTAR_SIGNATURE = "TriStar II Plus"
+ISOTHERM_TITLES = ("等温线线性图", "Isotherm Linear Plot")
+RELATIVE_PRESSURE_LABELS = ("相对压力", "Relative Pressure")
+DEFAULT_LABEL_SCAN_ROWS = 3
+DEFAULT_LABEL_SCAN_COLUMNS = 6
+MAX_CONSECUTIVE_EMPTY_ISOTHERM_ROWS = 3
+
+METADATA_LABELS: dict[str, tuple[str, ...]] = {
+    "sample_mass_g": ("Sample mass:",),
+    "bath_temp_K": ("Analysis bath temp.:",),
+    "bet_surface_area_m2g": ("BET 表面积:", "BET surface area:"),
+    "single_point_surface_area_m2g": ("单点表面积", "Single point surface area"),
+    "total_pore_volume_cm3g": ("总孔容", "Total pore volume"),
+    "mean_pore_diameter_adsorption_A": ("吸附平均孔径", "Adsorption average pore diameter"),
+    "mean_pore_diameter_desorption_A": ("脱附平均孔径", "Desorption average pore diameter"),
+}
+
 
 @dataclass
 class ParsedImportResult:
@@ -29,7 +46,7 @@ def detect_tristar_file(file_path: str | Path) -> bool:
     except ValueError:
         return False
     text = " ".join(str(value) for value in preview.to_numpy().ravel() if pd.notna(value))
-    return "TriStar II Plus" in text
+    return TRISTAR_SIGNATURE in text
 
 
 def _clean_text(value: Any) -> str:
@@ -62,17 +79,23 @@ def _find_value_right_of(df: pd.DataFrame, labels: tuple[str, ...], *, max_offse
     return None
 
 
-def _find_number_near_label(df: pd.DataFrame, labels: tuple[str, ...]) -> float | None:
+def _find_number_near_label(
+    df: pd.DataFrame,
+    labels: tuple[str, ...],
+    *,
+    max_row_offset: int = DEFAULT_LABEL_SCAN_ROWS,
+    max_col_offset: int = DEFAULT_LABEL_SCAN_COLUMNS,
+) -> float | None:
     for row in range(df.shape[0]):
         for col in range(df.shape[1] - 1):
             text = _clean_text(df.iat[row, col])
             if not any(label in text for label in labels):
                 continue
-            for row_offset in range(0, 3):
+            for row_offset in range(0, max_row_offset):
                 scan_row = row + row_offset
                 if scan_row >= df.shape[0]:
                     break
-                for scan_col in range(col + 1, min(col + 5, df.shape[1])):
+                for scan_col in range(col + 1, min(col + max_col_offset, df.shape[1])):
                     value_text = _clean_text(df.iat[scan_row, scan_col])
                     if value_text == "|":
                         break
@@ -99,7 +122,7 @@ def _find_cell_containing(df: pd.DataFrame, text: str) -> tuple[int, int] | None
 
 
 def _extract_metadata(df: pd.DataFrame) -> dict[str, Any]:
-    instrument = _find_first_text(df, "TriStar II Plus") or "TriStar II Plus"
+    instrument = _find_first_text(df, TRISTAR_SIGNATURE) or TRISTAR_SIGNATURE
     sample_name = _clean_text(_find_value_right_of(df, ("Sample:",))) or "TriStar Sample"
 
     meta: dict[str, Any] = {
@@ -107,16 +130,7 @@ def _extract_metadata(df: pd.DataFrame) -> dict[str, Any]:
         "sample_name": sample_name,
     }
 
-    scalar_fields = {
-        "sample_mass_g": ("Sample mass:",),
-        "bath_temp_K": ("Analysis bath temp.:",),
-        "bet_surface_area_m2g": ("BET 表面积:", "BET surface area:"),
-        "single_point_surface_area_m2g": ("单点表面积", "Single point surface area"),
-        "total_pore_volume_cm3g": ("总孔容", "Total pore volume"),
-        "mean_pore_diameter_adsorption_A": ("吸附平均孔径", "Adsorption average pore diameter"),
-        "mean_pore_diameter_desorption_A": ("脱附平均孔径", "Desorption average pore diameter"),
-    }
-    for key, labels in scalar_fields.items():
+    for key, labels in METADATA_LABELS.items():
         value = _find_number_near_label(df, labels)
         if value is not None:
             meta[key] = value
@@ -141,16 +155,19 @@ def _coerce_pair(df: pd.DataFrame, row: int, pressure_col: int, quantity_col: in
 
 
 def _extract_isotherm(df: pd.DataFrame) -> pd.DataFrame:
-    title_cell = _find_cell_containing(df, "等温线线性图")
-    if title_cell is None:
-        title_cell = _find_cell_containing(df, "Isotherm Linear Plot")
+    title_cell = None
+    for title in ISOTHERM_TITLES:
+        title_cell = _find_cell_containing(df, title)
+        if title_cell is not None:
+            break
     if title_cell is None:
         raise ValueError("TriStar isotherm section was not found")
 
     title_row, start_col = title_cell
     header_row = None
     for row in range(title_row + 1, min(title_row + 12, df.shape[0])):
-        if "相对压力" in _clean_text(df.iat[row, start_col]):
+        header_text = _clean_text(df.iat[row, start_col])
+        if any(label in header_text for label in RELATIVE_PRESSURE_LABELS):
             header_row = row
             break
     if header_row is None:
@@ -158,13 +175,17 @@ def _extract_isotherm(df: pd.DataFrame) -> pd.DataFrame:
 
     adsorption_rows: list[dict[str, Any]] = []
     desorption_rows: list[dict[str, Any]] = []
+    empty_run = 0
     for row in range(header_row + 1, df.shape[0]):
         adsorption = _coerce_pair(df, row, start_col, start_col + 1)
         desorption = _coerce_pair(df, row, start_col + 2, start_col + 3)
         if adsorption is None and desorption is None:
             if adsorption_rows or desorption_rows:
-                break
+                empty_run += 1
+                if empty_run >= MAX_CONSECUTIVE_EMPTY_ISOTHERM_ROWS:
+                    break
             continue
+        empty_run = 0
         if adsorption is not None:
             adsorption_rows.append(
                 {
@@ -191,7 +212,7 @@ def _extract_isotherm(df: pd.DataFrame) -> pd.DataFrame:
 def parse_tristar_file(file_path: str | Path) -> ParsedImportResult:
     df = _read_workbook(file_path)
     if not detect_tristar_file(file_path):
-        raise ValueError("File does not look like a TriStar II Plus workbook")
+        raise ValueError(f"File does not look like a {TRISTAR_SIGNATURE} workbook")
 
     meta = _extract_metadata(df)
     isotherm = _extract_isotherm(df)

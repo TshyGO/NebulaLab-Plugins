@@ -71,7 +71,7 @@ jobs:
 
   validate-index:
     needs: classify
-    if: needs.classify.outputs.index_changed == 'true'
+    if: needs.classify.outputs.index_changed == 'true' && needs.classify.outputs.source_changed == 'false'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
