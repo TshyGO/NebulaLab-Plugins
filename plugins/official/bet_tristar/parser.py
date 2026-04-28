@@ -13,6 +13,7 @@ RELATIVE_PRESSURE_LABELS = ("相对压力", "Relative Pressure")
 DEFAULT_LABEL_SCAN_ROWS = 3
 DEFAULT_LABEL_SCAN_COLUMNS = 6
 MAX_CONSECUTIVE_EMPTY_ISOTHERM_ROWS = 3
+MAX_CONSECUTIVE_EMPTY_TABLE_ROWS = 3
 
 METADATA_LABELS: dict[str, tuple[str, ...]] = {
     "sample_mass_g": ("Sample mass:",),
@@ -22,6 +23,39 @@ METADATA_LABELS: dict[str, tuple[str, ...]] = {
     "total_pore_volume_cm3g": ("总孔容", "Total pore volume"),
     "mean_pore_diameter_adsorption_A": ("吸附平均孔径", "Adsorption average pore diameter"),
     "mean_pore_diameter_desorption_A": ("脱附平均孔径", "Desorption average pore diameter"),
+}
+
+BJH_TWO_COLUMN_TABLES: dict[str, tuple[str, str, str]] = {
+    "bjh_adsorption_cumulative_pore_volume": (
+        "BJH 吸附 积分孔体积",
+        "pore_diameter_A",
+        "pore_volume_cm3_g",
+    ),
+    "bjh_adsorption_dv_dD": (
+        "BJH 吸附 dV/dD 孔体积",
+        "pore_diameter_A",
+        "dV_dD_pore_volume_cm3_g_A",
+    ),
+    "bjh_adsorption_dv_dlogD": (
+        "BJH 吸附 dV/dlog(D) 孔体积",
+        "pore_diameter_A",
+        "dV_dlogD_pore_volume_cm3_g",
+    ),
+    "bjh_desorption_cumulative_pore_volume": (
+        "BJH 脱附 积分孔体积",
+        "pore_diameter_A",
+        "pore_volume_cm3_g",
+    ),
+    "bjh_desorption_dv_dD": (
+        "BJH 脱附 dV/dD 孔体积",
+        "pore_diameter_A",
+        "dV_dD_pore_volume_cm3_g_A",
+    ),
+    "bjh_desorption_dv_dlogD": (
+        "BJH 脱附 dV/dlog(D) 孔体积",
+        "pore_diameter_A",
+        "dV_dlogD_pore_volume_cm3_g",
+    ),
 }
 
 
@@ -209,6 +243,60 @@ def _extract_isotherm(df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=["p_over_p0", "quantity_adsorbed", "branch"])
 
 
+def _extract_two_column_numeric_table(
+    df: pd.DataFrame,
+    *,
+    title: str,
+    x_column: str,
+    y_column: str,
+) -> pd.DataFrame | None:
+    title_cell = _find_cell_containing(df, title)
+    if title_cell is None:
+        return None
+
+    title_row, start_col = title_cell
+    header_row = None
+    for row in range(title_row + 1, min(title_row + 12, df.shape[0])):
+        first_header = _clean_text(df.iat[row, start_col])
+        second_header = _clean_text(df.iat[row, start_col + 1]) if start_col + 1 < df.shape[1] else ""
+        if "孔" in first_header and second_header:
+            header_row = row
+            break
+    if header_row is None:
+        return None
+
+    rows: list[dict[str, float]] = []
+    empty_run = 0
+    for row in range(header_row + 1, df.shape[0]):
+        pair = _coerce_pair(df, row, start_col, start_col + 1)
+        if pair is None:
+            if rows:
+                empty_run += 1
+                if empty_run >= MAX_CONSECUTIVE_EMPTY_TABLE_ROWS:
+                    break
+            continue
+        empty_run = 0
+        rows.append({x_column: pair[0], y_column: pair[1]})
+
+    if not rows:
+        return None
+    return pd.DataFrame(rows, columns=[x_column, y_column])
+
+
+def _extract_bjh_tables(df: pd.DataFrame) -> dict[str, pd.DataFrame]:
+    tables: dict[str, pd.DataFrame] = {}
+    for table_name, (title, x_column, y_column) in BJH_TWO_COLUMN_TABLES.items():
+        table = _extract_two_column_numeric_table(
+            df,
+            title=title,
+            x_column=x_column,
+            y_column=y_column,
+        )
+        if table is not None:
+            tables[table_name] = table
+    return tables
+
+
 def parse_tristar_file(file_path: str | Path) -> ParsedImportResult:
     df = _read_workbook(file_path)
     if not detect_tristar_file(file_path):
@@ -220,5 +308,5 @@ def parse_tristar_file(file_path: str | Path) -> ParsedImportResult:
         df=isotherm,
         sample_name=str(meta.get("sample_name") or "TriStar Sample"),
         meta=meta,
-        extra_tables={},
+        extra_tables=_extract_bjh_tables(df),
     )

@@ -13,7 +13,7 @@ from plugins.official.bet_tristar.parser import detect_tristar_file, parse_trist
 
 
 def _write_tristar_fixture(path: Path) -> None:
-    df = pd.DataFrame([[None for _ in range(15)] for _ in range(60)])
+    df = pd.DataFrame([[None for _ in range(100)] for _ in range(60)])
     df.iat[0, 4] = "|"
     df.iat[0, 10] = "|"
 
@@ -55,6 +55,46 @@ def _write_tristar_fixture(path: Path) -> None:
     df.iat[32, 12] = 86.33
     df.iat[32, 13] = 0.9794
     df.iat[32, 14] = 890.14
+
+    df.iat[25, 63] = "BJH 吸附 积分孔体积 (较大)"
+    df.iat[29, 63] = "孔 直径 (A)"
+    df.iat[29, 64] = "孔体积(cm3/g)"
+    df.iat[30, 63] = 481.1488
+    df.iat[30, 64] = 0.830174
+    df.iat[31, 63] = 254.1529
+    df.iat[31, 64] = 0.922026
+
+    df.iat[25, 68] = "BJH 吸附 dV/dD 孔体积"
+    df.iat[29, 68] = "孔 直径 (A)"
+    df.iat[29, 69] = "dV/dD 孔体积 (cm3/g·Å)"
+    df.iat[30, 68] = 564.1852
+    df.iat[30, 69] = 0.0006607
+    df.iat[31, 68] = 300.9175
+    df.iat[31, 69] = 0.0004046
+
+    df.iat[25, 73] = "BJH 吸附 dV/dlog(D) 孔体积"
+    df.iat[29, 73] = "孔 直径 (A)"
+    df.iat[29, 74] = "dV/dlog(D) 孔体积(cm3/g)"
+    df.iat[30, 73] = 564.1852
+    df.iat[30, 74] = 1.488614
+
+    df.iat[25, 85] = "BJH 脱附 积分孔体积 (较大)"
+    df.iat[29, 85] = "孔 直径 (A)"
+    df.iat[29, 86] = "孔体积(cm3/g)"
+    df.iat[30, 85] = 951.18
+    df.iat[30, 86] = 0.054234
+
+    df.iat[25, 90] = "BJH 脱附 dV/dD 孔体积"
+    df.iat[29, 90] = "孔 直径 (A)"
+    df.iat[29, 91] = "dV/dD 孔体积 (cm3/g·Å)"
+    df.iat[30, 90] = 1128.3025
+    df.iat[30, 91] = 0.0000687
+
+    df.iat[25, 95] = "BJH 脱附 dV/dlog(D) 孔体积"
+    df.iat[29, 95] = "孔 直径 (A)"
+    df.iat[29, 96] = "dV/dlog(D) 孔体积(cm3/g)"
+    df.iat[30, 95] = 1128.3025
+    df.iat[30, 96] = 0.206697
 
     with pd.ExcelWriter(path) as writer:
         df.to_excel(writer, index=False, header=False)
@@ -99,6 +139,30 @@ def test_parse_tristar_file_tolerates_single_blank_rows_inside_isotherm(tmp_path
 
     assert len(result.df) == 4
     assert result.df["p_over_p0"].tolist() == [0.0530187657, 0.0883, 0.9889, 0.9794]
+
+
+def test_parse_tristar_file_extracts_bjh_plot_tables(tmp_path: Path) -> None:
+    path = tmp_path / "tristar.xlsx"
+    _write_tristar_fixture(path)
+
+    result = parse_tristar_file(path)
+
+    expected_tables = {
+        "bjh_adsorption_cumulative_pore_volume",
+        "bjh_adsorption_dv_dD",
+        "bjh_adsorption_dv_dlogD",
+        "bjh_desorption_cumulative_pore_volume",
+        "bjh_desorption_dv_dD",
+        "bjh_desorption_dv_dlogD",
+    }
+    assert expected_tables.issubset(result.extra_tables.keys())
+    assert result.extra_tables["bjh_adsorption_dv_dD"].to_dict(orient="records") == [
+        {"pore_diameter_A": 564.1852, "dV_dD_pore_volume_cm3_g_A": 0.0006607},
+        {"pore_diameter_A": 300.9175, "dV_dD_pore_volume_cm3_g_A": 0.0004046},
+    ]
+    assert result.extra_tables["bjh_desorption_dv_dlogD"].to_dict(orient="records") == [
+        {"pore_diameter_A": 1128.3025, "dV_dlogD_pore_volume_cm3_g": 0.206697},
+    ]
 
 
 def test_parse_tristar_file_raises_controlled_error_for_missing_isotherm(tmp_path: Path) -> None:
