@@ -7,31 +7,74 @@ on:
       - 'plugins-index.json'
 
 jobs:
-  validate:
+  classify:
+    runs-on: ubuntu-latest
+    outputs:
+      index_changed: ${{ steps.files.outputs.index_changed }}
+      index_only: ${{ steps.files.outputs.index_only }}
+      source_changed: ${{ steps.files.outputs.source_changed }}
+    steps:
+      - name: Classify changed files
+        id: files
+        run: |
+          FILES=$(gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files --jq '.[].filename')
+          NON_INDEX_FILES=$(echo "$FILES" | grep -v '^plugins-index.json$' || true)
+          INDEX_FILES=$(echo "$FILES" | grep '^plugins-index.json$' || true)
+
+          if [ -n "$INDEX_FILES" ]; then
+            echo "index_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "index_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if [ -n "$NON_INDEX_FILES" ]; then
+            echo "index_only=false" >> "$GITHUB_OUTPUT"
+            echo "source_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "index_only=true" >> "$GITHUB_OUTPUT"
+            echo "source_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "Changed files:"
+          echo "$FILES"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  validate-source:
+    needs: classify
+    if: needs.classify.outputs.source_changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check PR modifies only plugins-index.json
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install validation dependencies
+        run: python -m pip install --upgrade pip pytest pandas openpyxl xlrd scipy numpy
+
+      - name: Validate plugin package structure
+        run: python .github/scripts/validate_plugins.py
+
+      - name: Scan plugin Python files for dangerous patterns
+        run: python .github/scripts/scan_dangerous.py
+
+      - name: Run plugin tests
         run: |
-          # Get list of changed files in this PR
-          FILES=$(gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files --jq '.[].filename')
-          
-          # Check if any file other than plugins-index.json is modified
-          NON_INDEX_FILES=$(echo "$FILES" | grep -v '^plugins-index.json$' || true)
-          
-          if [ -n "$NON_INDEX_FILES" ]; then
-            echo "❌ This PR contains changes to files other than plugins-index.json:"
-            echo "$NON_INDEX_FILES"
-            echo ""
-            echo "⚠️  Only pure index updates are eligible for auto-merge."
-            echo "   Code changes in plugins/ require manual review."
-            exit 1
+          if [ -d tests ]; then
+            pytest -q
+          else
+            echo "No tests directory present."
           fi
-          
-          echo "✅ PR only modifies plugins-index.json, proceeding with validation."
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  validate-index:
+    needs: classify
+    if: needs.classify.outputs.index_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -45,7 +88,10 @@ jobs:
         run: python .github/scripts/validate_plugin_release_assets.py
 
   auto-merge:
-    needs: validate
+    needs:
+      - classify
+      - validate-index
+    if: needs.classify.outputs.index_only == 'true' && needs.validate-index.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
