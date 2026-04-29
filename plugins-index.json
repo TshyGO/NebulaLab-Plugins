@@ -9,12 +9,13 @@
       "author": "Nebula Lab Team",
       "source": "official",
       "description": "使用非对称最小二乘法进行基线校正，适合光谱数据预处理",
-      "category": "preprocessing",
+      "category": "光谱预处理",
       "min_app_version": "0.6.0",
       "download_url": "https://github.com/TshyGO/NebulaLab-Plugins/releases/download/plugins/baseline-als-1.0.0.zip",
       "homepage": "https://github.com/TshyGO/NebulaLab-Plugins/tree/main/plugins/official/baseline_als",
+      "logo_url": "https://raw.githubusercontent.com/TshyGO/NebulaLab-Plugins/main/assets/icons/baseline-als.svg",
       "sha256": "ab54fcfe9e07d499b424e762c1ad63af8956e9048402d2c15750c14f7d46972e",
-      "tags": ["baseline", "spectroscopy", "als"]
+      "tags": ["基线校正", "光谱预处理", "ALS"]
     },
     {
       "id": "bet-tristar",
@@ -22,13 +23,14 @@
       "version": "0.1.0",
       "author": "Nebula Lab Team",
       "source": "official",
-      "description": "Parse Micromeritics TriStar II Plus BET analysis .XLS reports into adsorption/desorption isotherm data.",
-      "category": "instrument",
+      "description": "导入 Micromeritics TriStar II Plus 导出的 BET/BJH .XLS 报告，自动整理吸附/脱附等温线和孔径分布表。",
+      "category": "仪器数据导入",
       "min_app_version": "0.8.0",
       "download_url": "https://github.com/TshyGO/NebulaLab-Plugins/releases/download/plugins/bet-tristar-0.1.0.zip",
       "homepage": "https://github.com/TshyGO/NebulaLab-Plugins/tree/main/plugins/official/bet_tristar",
+      "logo_url": "https://raw.githubusercontent.com/TshyGO/NebulaLab-Plugins/main/assets/icons/bet-tristar.svg",
       "sha256": "bdf15dfe821d341988bcd798a281d3320c0a5b3e0e70d278df21c1085a80c6e6",
-      "tags": ["bet", "tristar", "instrument", "importer"]
+      "tags": ["BET分析", "BJH孔径", "TriStar导入"]
     }
   ]
 }
