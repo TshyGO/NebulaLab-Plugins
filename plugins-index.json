@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated": "2026-04-14",
+  "updated": "2026-04-29",
   "plugins": [
     {
       "id": "baseline-als",
@@ -15,6 +15,20 @@
       "homepage": "https://github.com/TshyGO/NebulaLab-Plugins/tree/main/plugins/official/baseline_als",
       "sha256": "ab54fcfe9e07d499b424e762c1ad63af8956e9048402d2c15750c14f7d46972e",
       "tags": ["baseline", "spectroscopy", "als"]
+    },
+    {
+      "id": "bet-tristar",
+      "name": "BET TriStar II Plus",
+      "version": "0.1.0",
+      "author": "Nebula Lab Team",
+      "source": "official",
+      "description": "Parse Micromeritics TriStar II Plus BET analysis .XLS reports into adsorption/desorption isotherm data.",
+      "category": "instrument",
+      "min_app_version": "0.8.0",
+      "download_url": "https://github.com/TshyGO/NebulaLab-Plugins/releases/download/plugins/bet-tristar-0.1.0.zip",
+      "homepage": "https://github.com/TshyGO/NebulaLab-Plugins/tree/main/plugins/official/bet_tristar",
+      "sha256": "bdf15dfe821d341988bcd798a281d3320c0a5b3e0e70d278df21c1085a80c6e6",
+      "tags": ["bet", "tristar", "instrument", "importer"]
     }
   ]
 }
