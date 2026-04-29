@@ -1,6 +1,15 @@
 from __future__ import annotations
+from dataclasses import dataclass, field
 from typing import Any, Dict, Tuple, Protocol
 import pandas as pd
+
+
+@dataclass
+class ImportResult:
+    df: pd.DataFrame
+    sample_name: str
+    meta: Dict[str, Any] = field(default_factory=dict)
+    extra_tables: Dict[str, pd.DataFrame] = field(default_factory=dict)
 
 
 class SampleProtocol(Protocol):

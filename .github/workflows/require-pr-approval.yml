@@ -1,0 +1,58 @@
+name: Require PR Approval
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+  pull_request_review:
+    types: [submitted, dismissed]
+
+jobs:
+  require-approval:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    steps:
+      - name: Require one approval unless admin bypass applies
+        uses: actions/github-script@v7
+        env:
+          ADMIN_BYPASS_USERS: ${{ vars.PR_APPROVAL_BYPASS_USERS || 'TshyGO' }}
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            if (!pr) {
+              core.info("No pull request context; skipping.");
+              return;
+            }
+
+            const admins = (process.env.ADMIN_BYPASS_USERS || "")
+              .split(",")
+              .map((item) => item.trim().toLowerCase())
+              .filter(Boolean);
+            const author = pr.user.login.toLowerCase();
+            if (admins.includes(author)) {
+              core.info(`Admin bypass applies for ${pr.user.login}.`);
+              return;
+            }
+
+            const reviews = await github.paginate(github.rest.pulls.listReviews, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+              per_page: 100,
+            });
+
+            const latestByUser = new Map();
+            for (const review of reviews) {
+              latestByUser.set(review.user.login, review);
+            }
+
+            const approvals = [...latestByUser.values()].filter((review) => {
+              return review.state === "APPROVED" && review.user.login.toLowerCase() !== author;
+            });
+
+            if (approvals.length < 1) {
+              core.setFailed("At least one non-author approval is required before merge.");
+              return;
+            }
+
+            core.info(`Approval requirement satisfied by ${approvals.length} reviewer(s).`);

@@ -95,8 +95,9 @@ def validate_plugin_asset(entry: dict) -> None:
             fail(f"{plugin_id}: plugin.json version does not match index entry")
 
         has_operations = bool(plugin_meta.get("operations"))
+        has_importers = bool(plugin_meta.get("importers"))
         panel_file = plugin_meta.get("panel")
-        if has_operations:
+        if has_operations or has_importers:
             read_text_member(archive, f"{prefix}__init__.py")
         if panel_file:
             if not isinstance(panel_file, str) or not panel_file.strip():
@@ -104,8 +105,8 @@ def validate_plugin_asset(entry: dict) -> None:
             if not panel_file.lower().endswith(".html"):
                 fail(f"{plugin_id}: panel file must end with .html")
             read_text_member(archive, f"{prefix}{panel_file}")
-        if not has_operations and not panel_file:
-            fail(f"{plugin_id}: plugin must declare operations or panel")
+        if not has_operations and not has_importers and not panel_file:
+            fail(f"{plugin_id}: plugin must declare operations, importers, or panel")
 
         for info in archive.infolist():
             if info.is_dir() or not info.filename.endswith(".py"):
