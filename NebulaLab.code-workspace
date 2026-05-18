@@ -1,0 +1,19 @@
+{
+  "folders": [
+    {
+      "name": "NebulaLab App",
+      "path": "../Data_Process"
+    },
+    {
+      "name": "NebulaLab Plugins",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/__pycache__": true,
+      "**/.pytest_cache": true,
+      "**/dist": true
+    }
+  }
+}

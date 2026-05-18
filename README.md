@@ -27,6 +27,7 @@
 |------|------|
 | [快速开始](./docs/getting_started.md) | 从环境搭建到第一个插件 |
 | [SDK API 参考](./docs/api_reference.md) | `@op` 装饰器、`OperationContext` 详解 |
+| [插件工作区管理](./docs/workspace_management.md) | 官方插件源码、市场索引、Release 与换电脑恢复流程 |
 | [Claude Code Skill](./skills/nebula-plugin-dev.md) | AI 辅助开发插件，含面板消息桥与市场发布字段 |
 
 ## 开发主题
@@ -67,12 +68,15 @@
 NebulaLab-Plugins/
 ├── plugins-index.json          # 插件市场索引（应用直接读取）
 ├── themes-index.json           # 主题市场索引（应用直接读取）
+├── NebulaLab.code-workspace    # 主应用 + 插件仓库的本地多根工作区
 ├── plugins/official/           # 官方插件
 ├── nebula_sdk/                 # 插件开发 SDK（Python 包）
 ├── templates/plugin_template/  # 插件开发模板
+├── scripts/                    # 官方插件打包和发布辅助脚本
 ├── docs/                       # 开发文档
 │   ├── getting_started.md      # 插件入门指南
 │   ├── api_reference.md        # SDK API 参考
+│   ├── workspace_management.md # 本地仓库编排与换机恢复
 │   └── contributing.md         # 贡献指南（插件 + 主题）
 ├── skills/                     # AI 辅助开发 skill
 │   ├── nebula-plugin-dev.md    # 插件开发 skill
