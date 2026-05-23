@@ -30,6 +30,8 @@ Zn2p Scan.VGD
 - `Peak Table` 会作为独立数据项导入；
 - `Titles` 如果非空，也会作为独立数据项导入。
 
+数据项名称按 `文件名·sheet名` 生成，例如 `1·Zn2p Scan`、`1·XPS Survey`、`1·Peak Table`。插件会在 `ImportResult.meta["display_name_by_table"]` 中提供每个附加表的完整显示名，避免 Nebula Lab 将第一张 sheet 名重复拼接到其他 sheet 上。
+
 每个谱图 sheet 输出列：
 
 ```text

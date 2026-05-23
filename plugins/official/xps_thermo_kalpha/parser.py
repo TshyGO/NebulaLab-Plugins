@@ -62,6 +62,11 @@ def _sheet_looks_like_scan(sheet_name: str) -> bool:
     return sheet_name == SURVEY_SHEET or sheet_name.endswith(SCAN_SUFFIX)
 
 
+def _looks_like_intensity_unit(value: Any) -> bool:
+    text = _normalized_text(value)
+    return any(unit in text for unit in ("counts", "cps", "intensity"))
+
+
 def _find_cell_containing(df: pd.DataFrame, needle: str) -> tuple[int, int] | None:
     target = needle.casefold()
     for row in range(df.shape[0]):
@@ -78,7 +83,7 @@ def _find_scan_header(df: pd.DataFrame) -> tuple[int, int] | None:
 def _has_counts_unit_nearby(df: pd.DataFrame, header_row: int) -> bool:
     for row in range(header_row, min(header_row + 3, df.shape[0])):
         for col in range(df.shape[1]):
-            if "counts" in _normalized_text(df.iat[row, col]):
+            if _looks_like_intensity_unit(df.iat[row, col]):
                 return True
     return False
 
@@ -89,11 +94,11 @@ def detect_thermo_kalpha_xps_file(file_path: str | Path) -> bool:
         return False
 
     try:
-        workbook = _read_workbook(path)
-    except ValueError:
+        workbook = pd.ExcelFile(path)
+        sheet_names = [str(name) for name in workbook.sheet_names]
+    except Exception:
         return False
 
-    sheet_names = list(workbook.keys())
     score = 0
     if SURVEY_SHEET in sheet_names:
         score += 1
@@ -102,9 +107,18 @@ def detect_thermo_kalpha_xps_file(file_path: str | Path) -> bool:
     if any(name.endswith(SCAN_SUFFIX) for name in sheet_names):
         score += 1
 
-    for name, df in workbook.items():
+    if score == 0:
+        return False
+
+    previews: list[pd.DataFrame] = []
+    for name in sheet_names:
         if not _sheet_looks_like_scan(name):
             continue
+        try:
+            df = workbook.parse(sheet_name=name, header=None, nrows=30)
+        except Exception:
+            continue
+        previews.append(df)
         header = _find_scan_header(df)
         if header is not None and _has_counts_unit_nearby(df, header[0]):
             score += 2
@@ -112,7 +126,7 @@ def detect_thermo_kalpha_xps_file(file_path: str | Path) -> bool:
 
     flat_text = " ".join(
         _clean_text(value)
-        for df in workbook.values()
+        for df in previews
         for value in df.head(20).to_numpy().ravel()
         if pd.notna(value)
     )
@@ -126,7 +140,7 @@ def _find_intensity_columns(df: pd.DataFrame, header_row: int, energy_col: int) 
     unit_row = header_row + 1 if header_row + 1 < df.shape[0] else header_row
     counts_columns: list[int] = []
     for col in range(energy_col + 1, df.shape[1]):
-        if "counts" in _normalized_text(df.iat[unit_row, col]):
+        if _looks_like_intensity_unit(df.iat[unit_row, col]):
             counts_columns.append(col)
 
     if not counts_columns:
@@ -379,18 +393,22 @@ def parse_thermo_kalpha_workbook(file_path: str | Path) -> ParsedImportResult:
 
     main_sheet = next(iter(scan_tables.keys()))
     sample_stem = path.stem
+    display_name_by_table: dict[str, str] = {}
     extra_tables: dict[str, pd.DataFrame] = {}
     for sheet_name, table in scan_tables.items():
+        display_name_by_table[sheet_name] = f"{sample_stem}·{sheet_name}"
         if sheet_name != main_sheet:
             extra_tables[sheet_name] = table
 
     peak_table = parse_peak_table(workbook[PEAK_TABLE_SHEET]) if PEAK_TABLE_SHEET in workbook else None
     if peak_table is not None and not peak_table.empty:
         extra_tables[PEAK_TABLE_SHEET] = peak_table
+        display_name_by_table[PEAK_TABLE_SHEET] = f"{sample_stem}·{PEAK_TABLE_SHEET}"
 
     titles_table = _clean_generic_sheet(workbook[TITLES_SHEET], source_sheet=TITLES_SHEET, source_file=path.name) if TITLES_SHEET in workbook else None
     if titles_table is not None and not titles_table.empty:
         extra_tables[TITLES_SHEET] = titles_table
+        display_name_by_table[TITLES_SHEET] = f"{sample_stem}·{TITLES_SHEET}"
 
     source_gun_type = next(
         (
@@ -406,6 +424,7 @@ def parse_thermo_kalpha_workbook(file_path: str | Path) -> ParsedImportResult:
         "sheet_names": list(workbook.keys()),
         "main_sheet": main_sheet,
         "scan_sheets": list(scan_tables.keys()),
+        "display_name_by_table": display_name_by_table,
         "peak_table_available": peak_table is not None and not peak_table.empty,
         "titles_sheet_available": titles_table is not None and not titles_table.empty,
         "region_metadata": region_metadata,
@@ -415,7 +434,7 @@ def parse_thermo_kalpha_workbook(file_path: str | Path) -> ParsedImportResult:
 
     return ParsedImportResult(
         df=scan_tables[main_sheet],
-        sample_name=f"{sample_stem} · {main_sheet}",
+        sample_name=display_name_by_table[main_sheet],
         meta=meta,
         extra_tables=extra_tables,
     )

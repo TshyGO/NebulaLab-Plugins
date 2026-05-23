@@ -84,7 +84,8 @@ def xps_calibrate_binding_energy(sample, params: Dict[str, Any]):
     observed_param = params.get("observed_peak_eV")
     if observed_param in (None, ""):
         intensity = _require_numeric_column(df, intensity_column)
-        observed_peak = float(energy.loc[intensity.idxmax()])
+        peak_position = int(intensity.argmax())
+        observed_peak = float(energy.iloc[peak_position])
     else:
         observed_peak = float(observed_param)
 
