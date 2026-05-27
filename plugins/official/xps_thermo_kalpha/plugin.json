@@ -8,6 +8,6 @@
   "min_app_version": "0.8.0",
   "importers": ["xps-thermo-kalpha"],
   "operations": ["xps_normalize_intensity", "xps_calibrate_binding_energy"],
-  "importer_priority": 10,
+  "priority": 10,
   "enabled": true
 }
