@@ -65,6 +65,7 @@ def register_importer(
     category: str = "custom",
     min_app_version: str = None,
     detect_fn: Callable | None = None,
+    priority: int = 0,
 ) -> Callable[[Callable], Callable]:
     def decorator(func: Callable) -> Callable:
         metadata = {
@@ -76,6 +77,7 @@ def register_importer(
             "min_app_version": min_app_version,
             "handler": func,
             "detect_fn": detect_fn,
+            "priority": priority,
         }
         _importer_registry[id] = metadata
         return func

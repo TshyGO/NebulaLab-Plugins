@@ -47,6 +47,7 @@ def register_importer(
     category: str = "custom",
     min_app_version: str | None = None,
     detect_fn: Callable[[Path], bool] | None = None,
+    priority: int = 0,
 ) -> Callable[[Callable[[str | Path], ImportResult]], Callable[[str | Path], ImportResult]]:
     """Register an importer in both app sandbox and repo-local SDK environments."""
 
@@ -62,6 +63,7 @@ def register_importer(
             "description": description or "",
             "category": category,
             "min_app_version": min_app_version,
+            "priority": priority,
         }
 
         def decorator(func: Callable[[str | Path], ImportResult]) -> Callable[[str | Path], ImportResult]:
@@ -87,6 +89,7 @@ def register_importer(
         category=category,
         min_app_version=min_app_version,
         detect_fn=detect_fn,
+        priority=priority,
     )
 
 
