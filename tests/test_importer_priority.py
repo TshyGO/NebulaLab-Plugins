@@ -87,30 +87,24 @@ def test_compat_register_importer_forwards_priority_to_engine(monkeypatch):
     def fake_engine_register(id, func, metadata, detect_fn=None, source="plugin"):
         captured["metadata"] = metadata
 
-    import plugins.official.xps_thermo_kalpha.compat as compat_module
-    import importlib
-    import sys
-
     # Inject a fake engine module so the compat branch takes the engine path.
+    # Use monkeypatch.setitem so pytest restores sys.modules automatically after the test.
     fake_engine = MagicMock()
     fake_engine.register_importer = fake_engine_register
-    sys.modules.setdefault("engine", MagicMock())
-    sys.modules.setdefault("engine.plugins", MagicMock())
-    sys.modules["engine.plugins.importers"] = fake_engine
+    monkeypatch.setitem(sys.modules, "engine", MagicMock())
+    monkeypatch.setitem(sys.modules, "engine.plugins", MagicMock())
+    monkeypatch.setitem(sys.modules, "engine.plugins.importers", fake_engine)
 
-    try:
-        @compat_register_importer(
-            id="_test_compat_engine_priority",
-            name="Test Engine Priority",
-            extensions=[".tst"],
-            priority=5,
-        )
-        def _handler(path):
-            return None
+    @compat_register_importer(
+        id="_test_compat_engine_priority",
+        name="Test Engine Priority",
+        extensions=[".tst"],
+        priority=5,
+    )
+    def _handler(path):
+        return None
 
-        assert captured["metadata"]["priority"] == 5
-    finally:
-        del sys.modules["engine.plugins.importers"]
+    assert captured["metadata"]["priority"] == 5
 
 
 def test_compat_register_importer_defaults_priority_to_zero():
