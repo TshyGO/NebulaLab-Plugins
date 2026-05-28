@@ -30,6 +30,7 @@ from .parser import detect_tristar_file, parse_tristar_file
     category="instrument",
     min_app_version="0.8.0",
     detect_fn=detect_tristar_file,
+    priority=10,
 )
 def parse(file_path: str | Path) -> ImportResult:
     result = parse_tristar_file(file_path)

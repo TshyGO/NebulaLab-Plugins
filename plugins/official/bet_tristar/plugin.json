@@ -2,10 +2,13 @@
   "id": "bet-tristar",
   "name": "BET TriStar II Plus",
   "version": "0.1.0",
-  "author": "Nebula Lab Team",
+  "author": "TshyGO",
+  "author_github": "TshyGO",
+  "author_url": "https://github.com/TshyGO",
   "description": "Parse Micromeritics TriStar II Plus BET analysis .XLS reports into adsorption/desorption isotherm data.",
   "category": "instrument",
   "min_app_version": "0.8.0",
   "importers": ["bet-tristar"],
+  "priority": 10,
   "enabled": true
 }

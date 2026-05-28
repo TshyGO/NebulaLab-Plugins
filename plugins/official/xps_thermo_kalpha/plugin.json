@@ -2,12 +2,15 @@
   "id": "xps-thermo-kalpha",
   "name": "Thermo Scientific K-Alpha XPS",
   "version": "0.1.6",
-  "author": "Nebula Lab Team",
+  "author": "wagtyq",
+  "author_github": "wagtyq",
+  "author_url": "https://github.com/wagtyq",
   "description": "导入 Thermo Scientific K-Alpha / Avantage XPS Excel 导出文件，并将每个 sheet 作为同一分组下的独立原始数据项；显示名使用“文件名·sheet名”。",
   "category": "instrument",
   "min_app_version": "0.8.0",
   "logo_url": "https://raw.githubusercontent.com/TshyGO/NebulaLab-Plugins/main/assets/icons/xps-thermo-kalpha.svg",
   "importers": ["xps-thermo-kalpha"],
   "operations": ["xps_normalize_intensity", "xps_calibrate_binding_energy"],
+  "priority": 10,
   "enabled": true
 }
