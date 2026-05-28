@@ -92,6 +92,19 @@ def test_detect_thermo_kalpha_xps_file_rejects_unrelated_workbook(tmp_path: Path
     assert detect_thermo_kalpha_xps_file(path) is False
 
 
+def test_detect_thermo_kalpha_xps_file_rejects_plain_table_workbook_from_issue_11(tmp_path: Path) -> None:
+    path = tmp_path / "T.xlsx"
+    plain = pd.DataFrame({
+        "Column1": [1, 2, 3],
+        "Column2": [4, 5, 6],
+        "Column3": [7, 8, 9],
+    })
+    with pd.ExcelWriter(path) as writer:
+        plain.to_excel(writer, sheet_name="T (2)", index=False)
+        plain.to_excel(writer, sheet_name="Sheet1", index=False)
+
+    assert detect_thermo_kalpha_xps_file(path) is False
+
 def test_detect_thermo_kalpha_xps_file_does_not_full_load_workbook(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     path = tmp_path / "xps.xlsx"
     _write_xps_fixture(path)
