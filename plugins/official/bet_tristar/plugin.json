@@ -7,5 +7,6 @@
   "category": "instrument",
   "min_app_version": "0.8.0",
   "importers": ["bet-tristar"],
+  "priority": 10,
   "enabled": true
 }

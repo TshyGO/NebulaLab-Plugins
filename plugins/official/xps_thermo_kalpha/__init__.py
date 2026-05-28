@@ -168,6 +168,7 @@ def _patch_nebula_importer_sample_naming() -> None:
     category="instrument",
     min_app_version="0.8.0",
     detect_fn=detect_thermo_kalpha_xps_file,
+    priority=10,
 )
 def parse(file_path: str | Path) -> ImportResult:
     result = apply_grouped_table_display_names(parse_thermo_kalpha_workbook(file_path), file_path)
