@@ -13,6 +13,7 @@ ID_PATTERN = re.compile(r"^[a-z0-9_-]+$")
 SEMVER_PATTERN = re.compile(r"^\d+\.\d+\.\d+$")
 ALLOWED_SOURCES = {"official", "community"}
 SHA256_PATTERN = re.compile(r"^[a-f0-9]{64}$")
+GITHUB_HANDLE_PATTERN = re.compile(r"^(?!.*--)[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$")
 
 
 def fail(message: str) -> None:
@@ -65,6 +66,39 @@ def main() -> None:
         source = item.get("source")
         if not isinstance(source, str) or source not in ALLOWED_SOURCES:
             errors.append(f"ERROR: {label}.source must be one of: official, community")
+
+        author_github = item.get("author_github")
+        author_url = item.get("author_url")
+        if source == "official":
+            if not isinstance(author_github, str) or not author_github.strip():
+                errors.append(f"ERROR: {label}.author_github is required for official plugins")
+            elif not GITHUB_HANDLE_PATTERN.fullmatch(author_github):
+                errors.append(f"ERROR: {label}.author_github must be a valid GitHub username")
+
+            expected_author_url = (
+                f"https://github.com/{author_github}" if isinstance(author_github, str) else None
+            )
+            if not isinstance(author_url, str) or not author_url.strip():
+                errors.append(f"ERROR: {label}.author_url is required for official plugins")
+            elif not author_url.startswith("https://"):
+                errors.append(f"ERROR: {label}.author_url must start with https://")
+            elif expected_author_url is not None and author_url != expected_author_url:
+                errors.append(f"ERROR: {label}.author_url must be {expected_author_url}")
+        else:
+            if author_github is not None:
+                if not isinstance(author_github, str) or not author_github.strip():
+                    errors.append(f"ERROR: {label}.author_github must be a non-empty string when provided")
+                elif not GITHUB_HANDLE_PATTERN.fullmatch(author_github):
+                    errors.append(f"ERROR: {label}.author_github must be a valid GitHub username")
+            if author_url is not None:
+                if not isinstance(author_url, str) or not author_url.strip():
+                    errors.append(f"ERROR: {label}.author_url must be a non-empty string when provided")
+                elif not author_url.startswith("https://"):
+                    errors.append(f"ERROR: {label}.author_url must start with https://")
+                elif isinstance(author_github, str) and author_github.strip():
+                    expected_author_url = f"https://github.com/{author_github}"
+                    if author_url != expected_author_url:
+                        errors.append(f"ERROR: {label}.author_url must be {expected_author_url}")
 
         homepage = item.get("homepage")
         if not isinstance(homepage, str) or not homepage.strip():

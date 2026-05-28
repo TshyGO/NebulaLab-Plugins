@@ -12,6 +12,8 @@
    - `name`: 插件显示名称。
    - `version`: 语义化版本号（例如 `1.0.0`）。
    - `author`: 您的名字或组织名。
+   - `author_github`: 官方插件必填，填写维护者的 GitHub ID。
+   - `author_url`: 官方插件必填，填写 `https://github.com/<author_github>`。
    - `description`: 清晰描述插件的用途和功能。
    - `operations`: 准确列出在 `__init__.py` 中注册的操作函数名。
    - `category`: 为插件选择合适的分类（如 `preprocessing`、`analysis`、`export`）。
@@ -71,6 +73,8 @@ git checkout -b add-my-awesome-plugin
   "name": "我的数据处理插件",
   "version": "1.0.0",
   "author": "您的名字",
+  "author_github": "您的GitHub用户名",
+  "author_url": "https://github.com/您的GitHub用户名",
   "source": "community",
   "description": "这是我的第一个 NebulaLab 插件",
   "category": "preprocessing",
@@ -85,6 +89,8 @@ git checkout -b add-my-awesome-plugin
 
 字段说明：
 - `download_url`: 指向您自己仓库 Release 中 zip 文件的直链
+- `author_github`: GitHub 用户名（官方插件必填；社区插件可选）
+- `author_url`: GitHub 主页 URL；提供 `author_github` 时建议同步填写
 - `homepage`: 插件主页或项目介绍页（**所有插件必填**）
 - `logo_url`: 插件卡片徽标（**可选**，建议使用透明底方形图片）
 - `source_url`: 插件源码仓库地址（**community 插件必填**）
