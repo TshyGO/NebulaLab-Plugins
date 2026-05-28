@@ -55,6 +55,10 @@ jobs:
       - name: Install validation dependencies
         run: python -m pip install --upgrade pip pytest pandas openpyxl xlrd scipy numpy
 
+      - name: Validate plugins-index.json format
+        if: needs.classify.outputs.index_changed == 'true'
+        run: python .github/scripts/validate_index.py
+
       - name: Validate plugin package structure
         run: python .github/scripts/validate_plugins.py
 
