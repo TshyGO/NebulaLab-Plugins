@@ -10,6 +10,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[2]
 PLUGINS_DIR = ROOT / "plugins"
 SEMVER_PATTERN = re.compile(r"^\d+\.\d+\.\d+$")
+GITHUB_HANDLE_PATTERN = re.compile(r"^(?!.*--)[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$")
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -73,6 +74,22 @@ def validate_plugin_dir(plugin_dir: Path) -> list[str]:
     version = payload.get("version")
     if isinstance(version, str) and not SEMVER_PATTERN.fullmatch(version):
         errors.append(f"ERROR: {plugin_json}: version must match semver x.y.z")
+
+    if "official" in plugin_dir.parts:
+        author_github = payload.get("author_github")
+        author_url = payload.get("author_url")
+        if not isinstance(author_github, str) or not author_github.strip():
+            errors.append(f"ERROR: {plugin_json}: official plugins require author_github")
+        elif not GITHUB_HANDLE_PATTERN.fullmatch(author_github):
+            errors.append(f"ERROR: {plugin_json}: author_github must be a valid GitHub username")
+
+        expected_author_url = (
+            f"https://github.com/{author_github}" if isinstance(author_github, str) else None
+        )
+        if not isinstance(author_url, str) or not author_url.strip():
+            errors.append(f"ERROR: {plugin_json}: official plugins require author_url")
+        elif expected_author_url is not None and author_url != expected_author_url:
+            errors.append(f"ERROR: {plugin_json}: author_url must be {expected_author_url}")
 
     init_file = plugin_dir / "__init__.py"
     if init_file.exists():
