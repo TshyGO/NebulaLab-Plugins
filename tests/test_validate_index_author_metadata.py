@@ -64,5 +64,14 @@ def test_official_plugin_author_url_must_match_github_handle(tmp_path):
         run_validator(tmp_path, payload)
 
 
+def test_official_plugin_author_github_rejects_consecutive_hyphens(tmp_path):
+    payload = copy.deepcopy(BASE_INDEX)
+    payload["plugins"][0]["author_github"] = "example--user"
+    payload["plugins"][0]["author_url"] = "https://github.com/example--user"
+
+    with pytest.raises(SystemExit):
+        run_validator(tmp_path, payload)
+
+
 def test_official_plugin_accepts_valid_github_author_metadata(tmp_path):
     run_validator(tmp_path, copy.deepcopy(BASE_INDEX))

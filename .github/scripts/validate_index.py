@@ -13,7 +13,7 @@ ID_PATTERN = re.compile(r"^[a-z0-9_-]+$")
 SEMVER_PATTERN = re.compile(r"^\d+\.\d+\.\d+$")
 ALLOWED_SOURCES = {"official", "community"}
 SHA256_PATTERN = re.compile(r"^[a-f0-9]{64}$")
-GITHUB_HANDLE_PATTERN = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$")
+GITHUB_HANDLE_PATTERN = re.compile(r"^(?!.*--)[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$")
 
 
 def fail(message: str) -> None:
