@@ -1,0 +1,160 @@
+name: AI PR Review
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, synchronize]
+  issue_comment:
+    types: [created]
+
+jobs:
+  ai-pr-review:
+    if: |
+      github.event.sender.type != 'Bot' &&
+      (
+        github.event_name == 'pull_request' ||
+        (
+          github.event_name == 'issue_comment' &&
+          github.event.issue.pull_request != null &&
+          startsWith(github.event.comment.body, '/review')
+        )
+      )
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Review pull request
+        uses: actions/github-script@v7
+        env:
+          OPENAI_API_KEY: ${{ secrets.PR_AGENT_OPENAI_KEY }}
+          OPENAI_API_BASE: ${{ secrets.PR_AGENT_OPENAI_API_BASE }}
+          PR_REVIEW_MODEL: "xf/astron-code-latest"
+        with:
+          script: |
+            const marker = '<!-- ai-pr-review-bot -->';
+            const pullNumber = context.payload.pull_request?.number ?? context.payload.issue?.number;
+            const { owner, repo } = context.repo;
+
+            if (!process.env.OPENAI_API_KEY || !process.env.OPENAI_API_BASE) {
+              throw new Error('PR_AGENT_OPENAI_KEY and PR_AGENT_OPENAI_API_BASE secrets are required.');
+            }
+
+            const { data: pull } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: pullNumber,
+            });
+
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner,
+              repo,
+              pull_number: pullNumber,
+              per_page: 100,
+            });
+
+            const diffText = files.map((file) => {
+              const patch = file.patch || '[binary or patch unavailable]';
+              return [
+                `File: ${file.filename}`,
+                `Status: ${file.status}; +${file.additions} -${file.deletions}`,
+                patch,
+              ].join('\n');
+            }).join('\n\n---\n\n').slice(0, 24000);
+
+            const system = [
+              'You are an experienced code reviewer.',
+              'Review the pull request for correctness, security, maintainability, and CI/configuration risks.',
+              'Return concise Markdown in Chinese.',
+              'If there are no actionable issues, say that clearly and mention residual risks.',
+            ].join(' ');
+
+            const user = [
+              `Repository: ${owner}/${repo}`,
+              `Pull Request: #${pull.number} ${pull.title}`,
+              `Author: ${pull.user.login}`,
+              `Base: ${pull.base.ref}`,
+              `Head: ${pull.head.ref}`,
+              '',
+              'Changed files and patches:',
+              diffText || '[No diff available]',
+            ].join('\n');
+
+            const baseUrl = process.env.OPENAI_API_BASE.replace(/\/$/, '');
+            const response = await fetch(`${baseUrl}/chat/completions`, {
+              method: 'POST',
+              headers: {
+                authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+                'content-type': 'application/json',
+                accept: 'application/json',
+                'user-agent': 'Mozilla/5.0 GitHubActions-AI-PR-Review',
+              },
+              body: JSON.stringify({
+                model: process.env.PR_REVIEW_MODEL,
+                messages: [
+                  { role: 'system', content: system },
+                  { role: 'user', content: user },
+                ],
+                temperature: 0.2,
+                stream: false,
+              }),
+            });
+
+            const responseText = await response.text();
+            let review;
+            if (response.ok) {
+              try {
+                const payload = JSON.parse(responseText);
+                review = payload?.choices?.[0]?.message?.content?.trim();
+              } catch (error) {
+                review = null;
+              }
+            }
+
+            if (!review) {
+              const gatewayBlocked = responseText.includes('验证失败') || responseText.includes('<!DOCTYPE html>');
+              review = [
+                '> AI review was not generated.',
+                '',
+                gatewayBlocked
+                  ? 'GitHub Actions reached the configured API endpoint, but the gateway returned an HTML verification page instead of JSON.'
+                  : `The AI endpoint returned an unusable response. HTTP status: ${response.status}.`,
+                '',
+                'Action needed: use an API base URL that GitHub-hosted runners can access without browser verification, or run this workflow on a self-hosted runner that can pass the gateway policy.',
+              ].join('\n');
+            }
+
+            const body = [
+              marker,
+              '## AI PR Review',
+              '',
+              review,
+              '',
+              `<sub>Model: ${process.env.PR_REVIEW_MODEL}</sub>`,
+            ].join('\n');
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number: pullNumber,
+              per_page: 100,
+            });
+            const existing = comments.find((comment) =>
+              comment.user.type === 'Bot' && comment.body?.includes(marker)
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: pullNumber,
+                body,
+              });
+            }
