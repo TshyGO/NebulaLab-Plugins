@@ -6,6 +6,10 @@ on:
   issue_comment:
     types: [created]
 
+concurrency:
+  group: ai-pr-review-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: true
+
 jobs:
   ai-pr-review:
     if: |
@@ -15,6 +19,7 @@ jobs:
         (
           github.event_name == 'issue_comment' &&
           github.event.issue.pull_request != null &&
+          contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association) &&
           startsWith(github.event.comment.body, '/review')
         )
       )
@@ -53,14 +58,17 @@ jobs:
               per_page: 100,
             });
 
-            const diffText = files.map((file) => {
+            const rawDiffText = files.map((file) => {
               const patch = file.patch || '[binary or patch unavailable]';
               return [
                 `File: ${file.filename}`,
                 `Status: ${file.status}; +${file.additions} -${file.deletions}`,
                 patch,
               ].join('\n');
-            }).join('\n\n---\n\n').slice(0, 24000);
+            }).join('\n\n---\n\n');
+            const diffText = rawDiffText.length > 24000
+              ? `${rawDiffText.slice(0, 24000)}\n\n[Diff truncated at 24000 characters]`
+              : rawDiffText;
 
             const system = [
               'You are an experienced code reviewer.',
@@ -81,28 +89,43 @@ jobs:
             ].join('\n');
 
             const baseUrl = process.env.OPENAI_API_BASE.replace(/\/$/, '');
-            const response = await fetch(`${baseUrl}/chat/completions`, {
-              method: 'POST',
-              headers: {
-                authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-                'content-type': 'application/json',
-                accept: 'application/json',
-                'user-agent': 'Mozilla/5.0 GitHubActions-AI-PR-Review',
-              },
-              body: JSON.stringify({
-                model: process.env.PR_REVIEW_MODEL,
-                messages: [
-                  { role: 'system', content: system },
-                  { role: 'user', content: user },
-                ],
-                temperature: 0.2,
-                stream: false,
-              }),
-            });
+            let response;
+            let responseText = '';
+            try {
+              const controller = new AbortController();
+              const timeout = setTimeout(() => controller.abort(), 120000);
+              try {
+                response = await fetch(`${baseUrl}/chat/completions`, {
+                  method: 'POST',
+                  signal: controller.signal,
+                  headers: {
+                    authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+                    'content-type': 'application/json',
+                    accept: 'application/json',
+                    'user-agent': 'GitHubActions-AI-PR-Review',
+                  },
+                  body: JSON.stringify({
+                    model: process.env.PR_REVIEW_MODEL,
+                    messages: [
+                      { role: 'system', content: system },
+                      { role: 'user', content: user },
+                    ],
+                    temperature: 0.2,
+                    stream: false,
+                  }),
+                });
+                responseText = await response.text();
+              } finally {
+                clearTimeout(timeout);
+              }
+            } catch (error) {
+              responseText = error?.name === 'AbortError'
+                ? 'AI endpoint request timed out after 120 seconds.'
+                : (error?.message || String(error));
+            }
 
-            const responseText = await response.text();
             let review;
-            if (response.ok) {
+            if (response?.ok) {
               try {
                 const payload = JSON.parse(responseText);
                 review = payload?.choices?.[0]?.message?.content?.trim();
@@ -118,7 +141,7 @@ jobs:
                 '',
                 gatewayBlocked
                   ? 'GitHub Actions reached the configured API endpoint, but the gateway returned an HTML verification page instead of JSON.'
-                  : `The AI endpoint returned an unusable response. HTTP status: ${response.status}.`,
+                  : `The AI endpoint returned an unusable response. HTTP status: ${response?.status ?? 'request failed'}.`,
                 '',
                 'Action needed: use an API base URL that GitHub-hosted runners can access without browser verification, or run this workflow on a self-hosted runner that can pass the gateway policy.',
               ].join('\n');
