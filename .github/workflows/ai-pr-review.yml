@@ -29,7 +29,7 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.PR_AGENT_OPENAI_KEY }}
           OPENAI_API_BASE: ${{ secrets.PR_AGENT_OPENAI_API_BASE }}
-          PR_REVIEW_MODEL: "xf/astron-code-latest"
+          PR_REVIEW_MODEL: "astron-code-latest"
         with:
           script: |
             const marker = '<!-- ai-pr-review-bot -->';
