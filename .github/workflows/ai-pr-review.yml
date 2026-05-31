@@ -113,6 +113,7 @@ jobs:
                     temperature: 0.2,
                     stream: false,
                     enable_thinking: true,
+                    max_tokens: 131072,
                   }),
                 });
                 responseText = await response.text();
@@ -130,9 +131,13 @@ jobs:
             if (response?.ok) {
               try {
                 const payload = JSON.parse(responseText);
-                reasoningLength = payload?.choices?.[0]?.message?.reasoning_content?.length || 0;
-                review = payload?.choices?.[0]?.message?.content?.trim();
+                const message = payload?.choices?.[0]?.message;
+                const finishReason = payload?.choices?.[0]?.finish_reason;
+                reasoningLength = message?.reasoning_content?.length || 0;
+                review = message?.content?.trim() || message?.reasoning_content?.trim();
+                console.log(`AI review: finish_reason=${finishReason} contentLen=${message?.content?.length || 0} reasoningLen=${reasoningLength} usage=${JSON.stringify(payload?.usage)}`);
               } catch (error) {
+                console.log(`AI review parse error: ${error?.message || error}`);
                 review = null;
               }
             }
