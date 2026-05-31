@@ -112,6 +112,7 @@ jobs:
                     ],
                     temperature: 0.2,
                     stream: false,
+                    enable_thinking: true,
                   }),
                 });
                 responseText = await response.text();
@@ -125,9 +126,11 @@ jobs:
             }
 
             let review;
+            let reasoningLength = 0;
             if (response?.ok) {
               try {
                 const payload = JSON.parse(responseText);
+                reasoningLength = payload?.choices?.[0]?.message?.reasoning_content?.length || 0;
                 review = payload?.choices?.[0]?.message?.content?.trim();
               } catch (error) {
                 review = null;
@@ -153,7 +156,7 @@ jobs:
               '',
               review,
               '',
-              `<sub>Model: ${process.env.PR_REVIEW_MODEL}</sub>`,
+              `<sub>Model: ${process.env.PR_REVIEW_MODEL} · Thinking: enabled${reasoningLength ? ` (${reasoningLength} chars)` : ''}</sub>`,
             ].join('\n');
 
             const comments = await github.paginate(github.rest.issues.listComments, {
