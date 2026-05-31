@@ -93,7 +93,7 @@ jobs:
             let responseText = '';
             try {
               const controller = new AbortController();
-              const timeout = setTimeout(() => controller.abort(), 120000);
+              const timeout = setTimeout(() => controller.abort(), 300000);
               try {
                 response = await fetch(`${baseUrl}/chat/completions`, {
                   method: 'POST',
@@ -113,7 +113,7 @@ jobs:
                     temperature: 0.2,
                     stream: false,
                     enable_thinking: true,
-                    max_tokens: 131072,
+                    max_tokens: 16384,
                   }),
                 });
                 responseText = await response.text();
@@ -122,7 +122,7 @@ jobs:
               }
             } catch (error) {
               responseText = error?.name === 'AbortError'
-                ? 'AI endpoint request timed out after 120 seconds.'
+                ? 'AI endpoint request timed out after 300 seconds.'
                 : (error?.message || String(error));
             }
 
