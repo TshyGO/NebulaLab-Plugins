@@ -58,6 +58,30 @@ jobs:
               per_page: 100,
             });
 
+            // Collect every issue referenced (#N) in the PR title, body and commit messages
+            const issueRefPattern = /#(\d+)/g;
+            const issueSources = [pull.title || '', pull.body || ''];
+            const prCommits = await github.paginate(github.rest.pulls.listCommits, {
+              owner,
+              repo,
+              pull_number: pullNumber,
+              per_page: 100,
+            });
+            for (const c of prCommits) issueSources.push(c.commit?.message || '');
+            const issueNumbers = [...new Set(
+              issueSources.flatMap((t) => [...t.matchAll(issueRefPattern)].map((m) => Number(m[1])))
+            )].slice(0, 10);
+            let issueContext = '';
+            for (const num of issueNumbers) {
+              try {
+                const { data: issue } = await github.rest.issues.get({ owner, repo, issue_number: num });
+                if (issue.pull_request) continue;
+                issueContext += `\n### Issue #${num}: ${issue.title}\n${(issue.body || '').slice(0, 2000)}\n`;
+              } catch (error) {
+                console.log(`Skip referenced issue #${num}: ${error.message}`);
+              }
+            }
+
             const rawDiffText = files.map((file) => {
               const patch = file.patch || '[binary or patch unavailable]';
               return [
@@ -72,6 +96,7 @@ jobs:
 
             const system = [
               'You are an experienced code reviewer.',
+              'First read the linked issue background (if provided) to understand what is being fixed and why, then judge whether the PR actually addresses it.',
               'Review the pull request for correctness, security, maintainability, and CI/configuration risks.',
               'Return concise Markdown in Chinese.',
               'If there are no actionable issues, say that clearly and mention residual risks.',
@@ -83,6 +108,13 @@ jobs:
               `Author: ${pull.user.login}`,
               `Base: ${pull.base.ref}`,
               `Head: ${pull.head.ref}`,
+              '',
+              'PR description:',
+              (pull.body || '[No description]').slice(0, 4000),
+              '',
+              issueContext
+                ? `Referenced issues (background — what & why):\n${issueContext}`
+                : 'Referenced issues: none.',
               '',
               'Changed files and patches:',
               diffText || '[No diff available]',
