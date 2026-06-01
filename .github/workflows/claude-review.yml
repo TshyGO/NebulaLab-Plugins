@@ -27,6 +27,36 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
+      - name: Collect referenced issue context
+        id: issue_context
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pullNumber = context.payload.pull_request.number;
+            const { owner, repo } = context.repo;
+            const { data: pull } = await github.rest.pulls.get({ owner, repo, pull_number: pullNumber });
+            const issueRefPattern = /#(\d+)/g;
+            const sources = [pull.title || '', pull.body || ''];
+            const prCommits = await github.paginate(github.rest.pulls.listCommits, {
+              owner, repo, pull_number: pullNumber, per_page: 100,
+            });
+            for (const c of prCommits) sources.push(c.commit?.message || '');
+            const nums = [...new Set(
+              sources.flatMap((t) => [...t.matchAll(issueRefPattern)].map((m) => Number(m[1])))
+            )].slice(0, 10);
+            let out = '';
+            for (const num of nums) {
+              try {
+                const { data: issue } = await github.rest.issues.get({ owner, repo, issue_number: num });
+                if (issue.pull_request) continue;
+                out += `\n### Issue #${num}: ${issue.title}\n${(issue.body || '').slice(0, 2000)}\n`;
+              } catch (error) {
+                console.log(`Skip referenced issue #${num}: ${error.message}`);
+              }
+            }
+            const fs = require('fs');
+            const delimiter = 'ISSUE_CTX_EOF';
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `text<<${delimiter}\n${out}\n${delimiter}\n`);
       - uses: anthropics/claude-code-action@beta
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -34,11 +64,15 @@ jobs:
           model: claude-opus-4-8
           use_sticky_comment: true
           direct_prompt: |
-            请 review 这个插件/主题 PR，重点关注：
+            先阅读本 PR 在标题/描述/commit 中引用的关联 Issue 背景（下方为空则表示没有引用），理解"要解决什么、为什么改"，再开始 review：
+            ${{ steps.issue_context.outputs.text }}
+
+            然后 review 这个插件/主题 PR，重点关注：
             1. plugin.json / manifest 字段是否完整、合规
             2. 代码安全性（有无危险 API 调用、越权、数据泄露）
             3. 与 NebulaLab 插件 API 的兼容性
             4. 有无破坏性变更影响现有用户
+            5. 改动是否真正解决了关联 Issue 的需求
             请用中文回复，给出具体的行内建议。
 
   on-demand-review:
