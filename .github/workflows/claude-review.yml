@@ -1,10 +1,42 @@
 name: Claude Code Review
 
 on:
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+    branches: [main]
   issue_comment:
     types: [created]
 
 jobs:
+  auto-review:
+    name: Auto Review on PR
+    if: |
+      github.event_name == 'pull_request' &&
+      contains(fromJSON('["opened", "reopened", "ready_for_review"]'), github.event.action)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: anthropics/claude-code-action@beta
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          model: claude-sonnet-4-6
+          use_sticky_comment: true
+          direct_prompt: |
+            请 review 这个插件/主题 PR，重点关注：
+            1. plugin.json / manifest 字段是否完整、合规
+            2. 代码安全性（有无危险 API 调用、越权、数据泄露）
+            3. 与 NebulaLab 插件 API 的兼容性
+            4. 有无破坏性变更影响现有用户
+            请用中文回复，给出具体的行内建议。
+
   on-demand-review:
     name: On-demand Review via @claude
     if: |
