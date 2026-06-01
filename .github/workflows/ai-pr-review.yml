@@ -155,37 +155,21 @@ jobs:
               ].join('\n');
             }
 
+            const headSha = (context.payload.pull_request?.head?.sha ?? context.sha ?? '').slice(0, 7);
+            const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+
             const body = [
               marker,
               '## AI PR Review',
               '',
               review,
               '',
-              `<sub>Model: ${process.env.PR_REVIEW_MODEL} · Thinking: enabled${reasoningLength ? ` (${reasoningLength} chars)` : ''}</sub>`,
+              `<sub>Model: ${process.env.PR_REVIEW_MODEL} · Thinking: enabled${reasoningLength ? ` (${reasoningLength} chars)` : ''} · Commit: ${headSha} · [Run](${runUrl})</sub>`,
             ].join('\n');
 
-            const comments = await github.paginate(github.rest.issues.listComments, {
+            await github.rest.issues.createComment({
               owner,
               repo,
               issue_number: pullNumber,
-              per_page: 100,
+              body,
             });
-            const existing = comments.find((comment) =>
-              comment.user?.login === 'github-actions[bot]' && comment.body?.includes(marker)
-            );
-
-            if (existing) {
-              await github.rest.issues.updateComment({
-                owner,
-                repo,
-                comment_id: existing.id,
-                body,
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner,
-                repo,
-                issue_number: pullNumber,
-                body,
-              });
-            }

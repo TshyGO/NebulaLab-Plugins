@@ -12,7 +12,11 @@ jobs:
     name: Auto Review on PR
     if: |
       github.event_name == 'pull_request' &&
-      contains(fromJSON('["opened", "reopened", "ready_for_review"]'), github.event.action)
+      (
+        (github.event.action == 'opened' && github.event.pull_request.draft == false) ||
+        github.event.action == 'reopened' ||
+        github.event.action == 'ready_for_review'
+      )
     runs-on: ubuntu-latest
     permissions:
       contents: read
