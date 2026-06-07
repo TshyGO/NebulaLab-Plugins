@@ -34,10 +34,9 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.PR_AGENT_OPENAI_KEY }}
           OPENAI_API_BASE: ${{ secrets.PR_AGENT_OPENAI_API_BASE }}
-          PR_REVIEW_MODEL: "astron-code-latest"
+          PR_REVIEW_MODELS: "xopglm51,xopkimik26"
         with:
           script: |
-            const marker = '<!-- ai-pr-review-bot -->';
             const pullNumber = context.payload.pull_request?.number ?? context.payload.issue?.number;
             const { owner, repo } = context.repo;
 
@@ -121,87 +120,133 @@ jobs:
             ].join('\n');
 
             const baseUrl = process.env.OPENAI_API_BASE.replace(/\/$/, '');
-            let response;
-            let responseText = '';
-            try {
-              const controller = new AbortController();
-              const timeout = setTimeout(() => controller.abort(), 300000);
-              try {
-                response = await fetch(`${baseUrl}/chat/completions`, {
-                  method: 'POST',
-                  signal: controller.signal,
-                  headers: {
-                    authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-                    'content-type': 'application/json',
-                    accept: 'application/json',
-                    'user-agent': 'GitHubActions-AI-PR-Review',
-                  },
-                  body: JSON.stringify({
-                    model: process.env.PR_REVIEW_MODEL,
-                    messages: [
-                      { role: 'system', content: system },
-                      { role: 'user', content: user },
-                    ],
-                    temperature: 0.2,
-                    stream: false,
-                    enable_thinking: true,
-                    max_tokens: 16384,
-                  }),
-                });
-                responseText = await response.text();
-              } finally {
-                clearTimeout(timeout);
-              }
-            } catch (error) {
-              responseText = error?.name === 'AbortError'
-                ? 'AI endpoint request timed out after 300 seconds.'
-                : (error?.message || String(error));
+            const models = (process.env.PR_REVIEW_MODELS || '')
+              .split(',')
+              .map((m) => m.trim())
+              .filter(Boolean);
+            if (models.length === 0) {
+              throw new Error('PR_REVIEW_MODELS must list at least one model id.');
             }
+            const MODEL_LABELS = { xopglm51: 'GLM-5.1', xopkimik26: 'Kimi-2.6' };
+            const maxAttempts = 3;
 
-            let review;
-            let reasoningLength = 0;
-            if (response?.ok) {
-              try {
-                const payload = JSON.parse(responseText);
-                const message = payload?.choices?.[0]?.message;
-                const finishReason = payload?.choices?.[0]?.finish_reason;
-                reasoningLength = message?.reasoning_content?.length || 0;
-                review = message?.content?.trim() || message?.reasoning_content?.trim();
-                console.log(`AI review: finish_reason=${finishReason} contentLen=${message?.content?.length || 0} reasoningLen=${reasoningLength} usage=${JSON.stringify(payload?.usage)}`);
-              } catch (error) {
-                console.log(`AI review parse error: ${error?.message || error}`);
-                review = null;
+            async function requestReview(model) {
+              const requestBody = JSON.stringify({
+                model,
+                messages: [
+                  { role: 'system', content: system },
+                  { role: 'user', content: user },
+                ],
+                temperature: 0.2,
+                stream: false,
+                enable_thinking: true,
+                max_tokens: 16384,
+              });
+              let response;
+              let responseText = '';
+              let requestError = '';
+              for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+                response = undefined;
+                responseText = '';
+                requestError = '';
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 300000);
+                try {
+                  response = await fetch(`${baseUrl}/chat/completions`, {
+                    method: 'POST',
+                    signal: controller.signal,
+                    headers: {
+                      authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+                      'content-type': 'application/json',
+                      accept: 'application/json',
+                      'user-agent': 'GitHubActions-AI-PR-Review',
+                    },
+                    body: requestBody,
+                  });
+                  responseText = await response.text();
+                } catch (error) {
+                  requestError = error?.name === 'AbortError'
+                    ? 'AI endpoint request timed out after 300 seconds.'
+                    : (error?.message || String(error));
+                } finally {
+                  clearTimeout(timeout);
+                }
+                if (response?.ok) break;
+                const status = response?.status ?? 'request failed';
+                const diag = (responseText || requestError || '').slice(0, 1000);
+                console.log(`[${model}] attempt ${attempt}/${maxAttempts} failed: status=${status} body=${diag}`);
+                // Retry transient failures only (5xx or network/timeout); a 4xx is a request/auth problem that will not fix itself on retry.
+                const retriable = !response || response.status >= 500;
+                if (!retriable || attempt === maxAttempts) break;
+                await new Promise((resolve) => setTimeout(resolve, 2000 * attempt));
               }
-            }
 
-            if (!review) {
-              const gatewayBlocked = responseText.includes('验证失败') || responseText.includes('<!DOCTYPE html>');
-              review = [
-                '> AI review was not generated.',
-                '',
-                gatewayBlocked
-                  ? 'GitHub Actions reached the configured API endpoint, but the gateway returned an HTML verification page instead of JSON.'
-                  : `The AI endpoint returned an unusable response. HTTP status: ${response?.status ?? 'request failed'}.`,
-                '',
-                'Action needed: use an API base URL that GitHub-hosted runners can access without browser verification, or run this workflow on a self-hosted runner that can pass the gateway policy.',
-              ].join('\n');
+              let review;
+              let reasoningLength = 0;
+              if (response?.ok) {
+                try {
+                  const payload = JSON.parse(responseText);
+                  const message = payload?.choices?.[0]?.message;
+                  const finishReason = payload?.choices?.[0]?.finish_reason;
+                  reasoningLength = message?.reasoning_content?.length || 0;
+                  review = message?.content?.trim() || message?.reasoning_content?.trim();
+                  console.log(`[${model}] finish_reason=${finishReason} contentLen=${message?.content?.length || 0} reasoningLen=${reasoningLength} usage=${JSON.stringify(payload?.usage)}`);
+                } catch (error) {
+                  console.log(`[${model}] parse error: ${error?.message || error}`);
+                  review = null;
+                }
+              }
+
+              if (!review) {
+                const failText = (responseText || requestError || '').trim();
+                const gatewayBlocked = failText.includes('验证失败') || failText.includes('<!DOCTYPE html>');
+                const status = response?.status ?? 'request failed';
+                const isServerSide = typeof status === 'number' && status >= 500;
+                const fence = '```';
+                const snippet = failText.replace(/`/g, "'").slice(0, 600);
+                review = [
+                  '> AI review was not generated.',
+                  '',
+                  gatewayBlocked
+                    ? 'GitHub Actions reached the configured API endpoint, but the gateway returned an HTML verification page instead of JSON.'
+                    : `The AI endpoint returned an unusable response after ${maxAttempts} attempt(s). HTTP status: ${status}.`,
+                  '',
+                  snippet
+                    ? `<details><summary>Upstream response (truncated)</summary>\n\n${fence}\n${snippet}\n${fence}\n</details>`
+                    : '',
+                  '',
+                  gatewayBlocked
+                    ? 'Action needed: use an API base URL that GitHub-hosted runners can reach without browser verification, or run this workflow on a self-hosted runner.'
+                    : isServerSide
+                      ? 'Action needed: a 5xx originates from the model gateway/account, not from GitHub access. Check the upstream response above — most often quota/balance exhausted, an invalid or expired key, a wrong model name, or a provider-side outage.'
+                      : 'Action needed: inspect the upstream response above to identify the request or auth problem.',
+                ].join('\n');
+              }
+
+              return { model, review, reasoningLength };
             }
 
             const headSha = (context.payload.pull_request?.head?.sha ?? context.sha ?? '').slice(0, 7);
             const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
 
-            const body = [
-              marker,
-              '## AI PR Review',
-              '',
-              review,
-              '',
-              `<sub>Model: ${process.env.PR_REVIEW_MODEL} · Thinking: enabled${reasoningLength ? ` (${reasoningLength} chars)` : ''} · Commit: ${headSha} · [Run](${runUrl})</sub>`,
-            ].join('\n');
+            // Run every configured model in parallel, then post one comment per model.
+            const results = await Promise.all(models.map((model) => requestReview(model)));
 
-            await github.rest.issues.createComment({
-              owner,
-              repo,
-              issue_number: pullNumber,
-              body,
-            });
+            for (const { model, review, reasoningLength } of results) {
+              const label = MODEL_LABELS[model] || model;
+              const body = [
+                `<!-- ai-pr-review-bot:${model} -->`,
+                `## AI PR Review · ${label}`,
+                '',
+                review,
+                '',
+                `<sub>Model: ${model} · Thinking: enabled${reasoningLength ? ` (${reasoningLength} chars)` : ''} · Commit: ${headSha} · [Run](${runUrl})</sub>`,
+              ].join('\n');
+              const { data: createdComment } = await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: pullNumber,
+                body,
+              });
+              console.log(`Created AI PR Review comment ${createdComment.id} for ${model}.`);
+            }
