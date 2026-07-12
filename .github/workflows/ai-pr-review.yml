@@ -1,7 +1,7 @@
 name: AI PR Review
 
-# Thin caller: logic lives in Nebulalab228/ci-central (reusable workflow).
-# Provider/model/key are managed centrally — see that repo + org secrets.
+# Thin caller: logic lives in TshyGO/ci-central (reusable workflow).
+# Provider/model logic lives there; credentials stay in caller repository secrets.
 
 on:
   pull_request:
@@ -26,9 +26,11 @@ jobs:
           startsWith(github.event.comment.body, '/review')
         )
       )
-    uses: Nebulalab228/ci-central/.github/workflows/pr-review.yml@main
+    uses: TshyGO/ci-central/.github/workflows/pr-review.yml@main
     permissions:
       contents: read
       issues: write
       pull-requests: write
-    secrets: inherit
+    secrets:
+      PR_AGENT_OPENAI_KEY: ${{ secrets.PR_AGENT_OPENAI_KEY }}
+      PR_AGENT_OPENAI_API_BASE: ${{ secrets.PR_AGENT_OPENAI_API_BASE }}
