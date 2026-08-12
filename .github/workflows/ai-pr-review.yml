@@ -34,3 +34,4 @@ jobs:
     secrets:
       PR_AGENT_OPENAI_KEY: ${{ secrets.PR_AGENT_OPENAI_KEY }}
       PR_AGENT_OPENAI_API_BASE: ${{ secrets.PR_AGENT_OPENAI_API_BASE }}
+      PR_AGENT_GOOGLE_AI_KEY: ${{ secrets.PR_AGENT_GOOGLE_AI_KEY }}
