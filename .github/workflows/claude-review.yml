@@ -11,6 +11,7 @@ jobs:
   auto-review:
     name: Auto Review on PR
     if: |
+      vars.CLAUDE_REVIEW_ENABLED == 'true' &&
       github.event_name == 'pull_request' &&
       (
         (github.event.action == 'opened' && github.event.pull_request.draft == false) ||
