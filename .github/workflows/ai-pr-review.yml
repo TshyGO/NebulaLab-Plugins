@@ -1,7 +1,7 @@
 name: AI PR Review
 
 # Thin caller: logic lives in TshyGO/ci-central (reusable workflow).
-# Provider/model logic lives there; credentials stay in caller repository secrets.
+# Model/provider policy lives there. This caller only maps stable Lane credential slots.
 
 on:
   pull_request:
@@ -10,8 +10,8 @@ on:
     types: [created]
 
 concurrency:
-  group: ai-pr-review-${{ github.event.pull_request.number || github.event.issue.number }}
-  cancel-in-progress: false
+  group: ai-pr-review-${{ github.event_name }}-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: true
 
 jobs:
   ai-pr-review:
@@ -32,6 +32,9 @@ jobs:
       issues: write
       pull-requests: write
     secrets:
-      PR_AGENT_OPENAI_KEY: ${{ secrets.PR_AGENT_OPENAI_KEY }}
-      PR_AGENT_OPENAI_API_BASE: ${{ secrets.PR_AGENT_OPENAI_API_BASE }}
-      PR_AGENT_GOOGLE_AI_KEY: ${{ secrets.PR_AGENT_GOOGLE_AI_KEY }}
+      PR_AGENT_LANE_A_KEY: ${{ secrets.PR_AGENT_LANE_A_KEY }}
+      PR_AGENT_LANE_A_API_BASE: ${{ secrets.PR_AGENT_LANE_A_API_BASE }}
+      PR_AGENT_LANE_B_KEY: ${{ secrets.PR_AGENT_LANE_B_KEY }}
+      PR_AGENT_LANE_B_API_BASE: ${{ secrets.PR_AGENT_LANE_B_API_BASE }}
+      PR_AGENT_LANE_C_KEY: ${{ secrets.PR_AGENT_LANE_C_KEY }}
+      PR_AGENT_LANE_C_API_BASE: ${{ secrets.PR_AGENT_LANE_C_API_BASE }}

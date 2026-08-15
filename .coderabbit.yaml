@@ -1,7 +1,7 @@
 language: "zh-CN"
 reviews:
   auto_review:
-    enabled: true
+    enabled: false
     drafts: false
   review_profile: "assertive"
   path_instructions:
@@ -20,4 +20,4 @@ reviews:
         3. source 字段是否正确（official/community）
         4. sha256 字段是否存在（community 插件必须有）
 chat:
-  auto_reply: true
+  auto_reply: false
