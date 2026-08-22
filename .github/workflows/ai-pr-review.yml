@@ -26,7 +26,7 @@ jobs:
           startsWith(github.event.comment.body, '/review')
         )
       )
-    uses: TshyGO/ci-central/.github/workflows/pr-review.yml@main
+    uses: TshyGO/ci-central/.github/workflows/pr-review.yml@8d01339714bfd12541759200e084049da7ef8198
     permissions:
       contents: read
       issues: write
