@@ -26,6 +26,7 @@ jobs:
           startsWith(github.event.comment.body, '/review')
         )
       )
+    # Keep this uses pin and central_workflow_sha identical; caller review enforces this trust boundary.
     uses: TshyGO/ci-central/.github/workflows/pr-review.yml@e6d6211bfce212da3a43471f7d9c07961149f4a9
     permissions:
       contents: read
