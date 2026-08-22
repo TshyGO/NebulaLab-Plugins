@@ -26,11 +26,13 @@ jobs:
           startsWith(github.event.comment.body, '/review')
         )
       )
-    uses: TshyGO/ci-central/.github/workflows/pr-review.yml@8d01339714bfd12541759200e084049da7ef8198
+    uses: TshyGO/ci-central/.github/workflows/pr-review.yml@e6d6211bfce212da3a43471f7d9c07961149f4a9
     permissions:
       contents: read
       issues: write
       pull-requests: write
+    with:
+      central_workflow_sha: e6d6211bfce212da3a43471f7d9c07961149f4a9
     secrets:
       PR_AGENT_LANE_A_KEY: ${{ secrets.PR_AGENT_LANE_A_KEY }}
       PR_AGENT_LANE_A_API_BASE: ${{ secrets.PR_AGENT_LANE_A_API_BASE }}
