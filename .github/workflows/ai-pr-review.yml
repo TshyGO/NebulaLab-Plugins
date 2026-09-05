@@ -11,11 +11,156 @@ on:
 
 concurrency:
   group: ai-pr-review-${{ github.event_name }}-${{ github.event.pull_request.number || github.event.issue.number }}
-  cancel-in-progress: true
+  # A second "/review" shares the event_name and therefore this group, so it used to
+  # cancel the first one here. Pushes keep latest-wins, because a new commit really does
+  # make a running review obsolete. See NebulaLab #821 for the full three-group story.
+  cancel-in-progress: ${{ github.event_name != 'issue_comment' }}
 
 jobs:
-  ai-pr-review:
+  # Only an authorized "/review" reaches this job, so the automatic path pays nothing for
+  # it: on a pull_request event it is skipped before a runner is ever assigned. The review
+  # it guards runs GitHub-hosted in this repository, so the guard does too.
+  review-guard:
     if: |
+      github.event_name == 'issue_comment' &&
+      github.event.sender.type != 'Bot' &&
+      github.event.issue.pull_request != null &&
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association) &&
+      startsWith(github.event.comment.body, '/review')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+      # pull-requests: write, not read, even though the stand-down note is written through
+      # the issues API. Posting into a pull request's conversation is checked against the
+      # pull-requests scope as well, and `read` here failed in production with "Resource
+      # not accessible by integration" - run 33974941738, which found the running review,
+      # could not say so, and fell through to starting the duplicate it meant to prevent.
+      # ai-pr-review has carried both scopes all along for the same reason.
+      pull-requests: write
+    outputs:
+      proceed: ${{ steps.decide.outputs.proceed }}
+    steps:
+      - name: Stand down when this pull request already has a review running
+        id: decide
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            // Fail open. Every path that cannot prove a review is already running - and
+            // every failure of this job's own - lets the review start: a guard that
+            // suppresses a review it should have allowed is worse than the duplicate run it
+            // was meant to prevent. 'false' is therefore written last, once the stand-down
+            // has actually been explained, and never before a step that can still throw.
+            core.setOutput('proceed', 'true');
+            const { owner, repo } = context.repo;
+            const pullNumber = context.payload.issue.number;
+
+            let pull;
+            try {
+              pull = (await github.rest.pulls.get({ owner, repo, pull_number: pullNumber })).data;
+            } catch (error) {
+              core.warning(`Could not read pull request #${pullNumber}; starting the review anyway: ${error.message}`);
+              return;
+            }
+
+            let runs;
+            try {
+              // Filtered by head SHA at the API rather than in the page below. Unfiltered,
+              // a busy window could push the run this guard exists to protect past the
+              // hundredth result, and missing it means falling straight back into the
+              // cancel this whole change is about.
+              runs = (await github.rest.actions.listWorkflowRuns({
+                owner,
+                repo,
+                workflow_id: 'ai-pr-review.yml',
+                head_sha: pull.head.sha,
+                per_page: 100,
+              })).data.workflow_runs;
+            } catch (error) {
+              core.warning(`Could not list AI PR Review runs; starting the review anyway: ${error.message}`);
+              return;
+            }
+
+            // Only an automatic run can be observed from here, and its head SHA identifies
+            // this pull request exactly. An earlier "/review" cannot appear in this list:
+            // it shares this workflow's issue_comment concurrency group, and that group no
+            // longer cancels, so GitHub queues the second request behind the first instead
+            // of running both. By the time this job exists the earlier one has finished -
+            // matching it would be unreachable code, and the only way to match it was a
+            // guess at the pull request title.
+            //
+            // Only older runs count, so that if two triggers ever do overlap the earlier
+            // one proceeds rather than both standing down. Run ids increase monotonically.
+            // The head SHA is re-checked rather than trusted from the query, so dropping
+            // that parameter cannot silently widen what counts as "already running".
+            //
+            // One branch can head two pull requests at once, and then a run for the other
+            // one carries this SHA too. `pull_requests` names the pull requests a run
+            // belongs to when GitHub populates it, and it is empty often enough (forks,
+            // most notably) that an empty list has to mean "no opinion" rather than "not
+            // this one" - the message would otherwise point at a review updating comments
+            // on a different pull request.
+            const active = new Set(['queued', 'in_progress', 'waiting', 'requested', 'pending']);
+            const mine = (run) => !Array.isArray(run.pull_requests)
+              || run.pull_requests.length === 0
+              || run.pull_requests.some((candidate) => candidate.number === pullNumber);
+            const running = runs
+              .filter((run) => run.id < context.runId
+                && active.has(run.status)
+                && run.head_sha === pull.head.sha
+                && mine(run))
+              .sort((left, right) => left.id - right.id)[0];
+            if (!running) return;
+
+            core.notice(`#${pullNumber} already has a review running: ${running.html_url}`);
+
+            const marker = '<!-- ai-pr-review-guard -->';
+            const body = [
+              marker,
+              `已有一轮 AI 评审在跑（推送或转 Ready 后自动触发，[run ${running.id}](${running.html_url})）。`,
+              '',
+              '本次 `/review` **已忽略，没有取消它** —— 它会自己跑完并更新 Lane 评论。',
+              '一轮评审通常 5-15 分钟。想改用最新代码重跑，推一个新提交即可。',
+            ].join('\n');
+
+            // One stable comment, updated in place. The situation that produces this
+            // message is also the situation that produces repeated "/review" comments, and
+            // a fresh reply to each one is exactly the noise this guard exists to remove.
+            try {
+              const comments = await github.paginate(github.rest.issues.listComments, {
+                owner,
+                repo,
+                issue_number: pullNumber,
+                per_page: 100,
+              });
+              const existing = comments.find((comment) => (comment.body || '').startsWith(marker));
+              if (existing) {
+                await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+              } else {
+                await github.rest.issues.createComment({ owner, repo, issue_number: pullNumber, body });
+              }
+            } catch (error) {
+              // Standing down without being able to say so leaves the author with a
+              // "/review" that did nothing and no way to find out why, which is the
+              // confusion that started #819. Start the review instead.
+              core.warning(`Could not explain the stand-down; starting the review anyway: ${error.message}`);
+              return;
+            }
+
+            core.setOutput('proceed', 'false');
+
+  ai-pr-review:
+    needs: review-guard
+    # review-guard is skipped on every automatic trigger, and a skipped dependency would
+    # skip this job too, so the condition has to survive it: `!cancelled()` keeps the job
+    # reachable, and comparing against the literal 'false' means a guard that errored, or
+    # never ran, still starts the review. The guard can decline a duplicate; it can never
+    # silently swallow a review.
+    if: |
+      !cancelled() &&
+      needs.review-guard.outputs.proceed != 'false' &&
       github.event.sender.type != 'Bot' &&
       (
         github.event_name == 'pull_request' ||
