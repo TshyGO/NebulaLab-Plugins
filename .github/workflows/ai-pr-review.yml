@@ -172,13 +172,13 @@ jobs:
         )
       )
     # Keep this uses pin and central_workflow_sha identical; caller review enforces this trust boundary.
-    uses: TshyGO/ci-central/.github/workflows/pr-review.yml@420e9391301ddd6fac79bcad17e6ba1f4acbb0fa
+    uses: TshyGO/ci-central/.github/workflows/pr-review.yml@a7265c58f42f4705236f0b4a9a212905a1874209
     permissions:
       contents: read
       issues: write
       pull-requests: write
     with:
-      central_workflow_sha: 420e9391301ddd6fac79bcad17e6ba1f4acbb0fa
+      central_workflow_sha: a7265c58f42f4705236f0b4a9a212905a1874209
     secrets:
       PR_AGENT_LANE_A_KEY: ${{ secrets.PR_AGENT_LANE_A_KEY }}
       PR_AGENT_LANE_A_API_BASE: ${{ secrets.PR_AGENT_LANE_A_API_BASE }}
